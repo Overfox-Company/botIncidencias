@@ -154,7 +154,7 @@ export const cleanSMS = (sms) => {
 
     const regexImpacto = /Impacto:\s*([\s\S]*?)(?=\n(?:Puntos de|Gerente|Coordinador|Personal|COR|$))/i;
     const regexPuntosAtencion = /Puntos de ?atenci[oó]n:\s*([\s\S]*?)(?=\n(?:Gerente|Coordinador|Personal|COR|$))/i;
-    const regexPersonalEjecutor = /(?:📌|♦️)?\s*Personal\s+ejecutor:\s*([\s\S]*?)(?=\n(?:COR|Gerente|Coordinador|ATIT|$))/i;
+    const regexPersonalEjecutor = /(?:📌|♦️)?\s*Personal\s+ejecutor:\s*([\s\S]*?)(?=\n(?:COR|Gerente|Coordinador|ATIT|"ATIT|" ATIT|$))/i;
 
     // Lugar
     const regexLugar = new RegExp(`${emojiOpt}\\s*lugar${emojiOpt}\\s*:?\\s*(.+)`, "i");
@@ -292,7 +292,7 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
         } else {
             // Sin AM/PM
             if (h > 23 || h < 0) return null; // fuera de rango 0-23
-            if (h >= 1 && h <= 12) ambiguous = e; // podría ser AM o PM
+            // if (h >= 1 && h <= 12) ambiguous = e; // podría ser AM o PM
         }
 
         if (min < 0 || min > 59) return null;

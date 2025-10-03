@@ -1,10 +1,9 @@
-export const TOKEN = '8236415704:AAGRAnTHv_TUBg3k1-21UjCzlF4mvr_PpIg'; // tu token aquí
-
+export const TOKEN = '7778423540:AAHYBOQJpbOYJeMqTEPbXmlC8w_DrcXCQIk'; // tu token aquí
 // 📅 Configuración del día y hora del reporte
 // 0 = Domingo, 1 = Lunes, 2 = Martes, 3 = Miércoles, 4 = Jueves, 5 = Viernes, 6 = Sábado
-export const DIA_REPORTE = 2;  // dia de la semana
-const HORA_REPORTE = 13 // hora del dia en hora militar (0-23)
-const MINUTO_REPORTE = 20; // minuto exacto (0-59)
+export const DIA_REPORTE = 5;  // dia de la semana
+const HORA_REPORTE = 11 // hora del dia en hora militar (0-23)
+const MINUTO_REPORTE = 0; // minuto exacto (0-59)
 
 // 🕒 Generar expresión CRON automáticamente
 // '0 0 HORA * * DIA' → minutos=0, horas=HORA, díaSemana=DIA
