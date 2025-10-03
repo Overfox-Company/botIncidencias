@@ -1,0 +1,95 @@
+const smsArray = [
+    {
+        "Usuario": "marimar1149",
+        "Mensaje": "Estado: Táchira\n📆 Fecha Inicio:29/08/2025\n📆 Fecha Finalizado: 29/08/2025\n🕖 Hora de inicio: 9:00 Am\n🕖 Hora de cierre: 9:00 Pm\nlugar: San Rafael del Piñal CIAU\n\nDescripcion: Se realiza realiza tendido aereo de 150mts de fibra óptica. Se instalan dos cajas de empalme y se realizan respectivas fusiones de fibra óptica para empalmar el tramo afectado por la ruptura. Se realizan respectivas pruebas de reflectometria hacia cada extremo de los clientes afectados. Se cambian SFP en el CIAU Piñal Corpoelec y SE Corozo quedando operativo Servicios Corporativos, SAP, correo y Internet. Corroborado por personal del CIAU Yenny Silva. Servicio de todonet operativo y en el CIAU Piñal para borrón y cuenta nueva. Queda culminado los trabajos 100% operativo y en funcionamiento.\n\nImpacto: \n1. Restablecimiento del servicio de fibra óptica\n2. Mejora en la calidad de la señal\n3. Operatividad de servicios críticos\n4. Activación de servicios de respaldo y reconfiguración\n5. Cierre exitoso del trabajo\n\nPuntos de atencion:\n1. Seguridad en trabajos en altura: El tendido aéreo de fibra óptica requiere precauciones para evitar accidentes, como caídas o lesiones, por lo que es fundamental seguir protocolos de seguridad adecuados.\n2. Calibración y precisión en empalmes: La calidad de las fusiones y pruebas de reflectometría son críticas para garantizar la integridad de la red, por lo que se debe verificar que se hayan seguido los procedimientos correctos.\n3. Verificación post-trabajo: Es importante realizar pruebas adicionales y monitoreo continuo para detectar posibles deterioros o fallas futuras en las fusiones o conexiones.\n4. Documentación y registro: Mantener registros detallados de las fusiones, pruebas y cambios realizados para facilitar futuras mantenciones o diagnósticos.\n5. Comunicación con usuarios: Informar a los usuarios afectados sobre la finalización de los trabajos y la operatividad de los servicios para gestionar expectativas y evitar reclamos.\n6. Mantenimiento preventivo: Programar revisiones periódicas para asegurar la durabilidad de las conexiones y prevenir futuras rupturas o fallas.\n\nGerente Estatal de ATIT\n♦️Ing. William Castro\n\nCoordinador Telecomunicaciones  \n♦️Ing. Jose Parada\n\nPersonal  ejecutor:\n♦️Ing. William Castro \n♦️Ing. José Casique \n♦️Ing. Alejandro Arbelaez \n♦️Ing.Marimar Rincón (Remoto)\n♦️Ing. Joel Zambrano \n♦️Ing. Moisés Colmenares\n\nCOR Nacional:\n♦️Ing. Ing. Adriana Arévalo\n♦️Ing. Ing. Daniel Perez.\n\nATIT, Somos la Voz Comando y Control del SEN “",
+        "Fecha": "9/5/2025, 11:26:43 AM"
+    },
+    {
+        "Usuario": "marimar1149",
+        "Mensaje": "Estado: Táchira\n📆 Fecha de inicio:  02/09/2025\n📆 Fecha de cierre:  02/09/2025\n🕖 Hora de inicio: 10:30\n🕖 Hora de cierre: 3:40\nlugar: Subestación SCI- Subestacion la  Grita - Tovar.\n\nDescripcion: Reflectometría y verificacion de servicio EDC Network desde Subestación SCI- Subestacion la  Grita - Tovar.\n\nEn horas de la mañana personal de ATIT Táchira se dirige a la subestación SAN CRISTOBAL 1 en compañía de personal de EDC Network, para realizar prueba de reflectometría y envío de potencia en hilos 1 y 8 de la bandeja C del ODF con vista a subestación LA GRITA, notándose la novedad que el hilo 1 pasaba directo a tovar sin pasar por transito visible en subestacion la grita por lo tanto se ejecuta el cambio a hilo 11 quedando el servicio en los hilos 8 y 11.\n\nLos trabajos fueron realizados bajo permiso SOA, sin consecuencia bajo el N•: 1446356 abierto por el despachador Viloria a las 10:30 y cerrado a las 3:40 \n\nImpacto: \n\nContinuidad del servicio: La modificación del cable (cambio del hilo 1 a hilo 11) asegura que el servicio en los hilos 8 y 11 quede operativo, minimizando interrupciones.\nDetección de anomalía: Se identificó que el hilo 1 estaba conectado directamente a Tovar sin pasar por la subestación La Grita, lo cual podría indicar una configuración no habitual o potencialmente problemática, que fue corregida para asegurar el correcto trazado de la red.\nSeguridad y control: La realización de las pruebas y cambios bajo un permiso formal (SOA) garantiza que las actividades se llevaron a cabo siguiendo los procedimientos establecidos, minimizando riesgos operativos.\n\nPuntos de atencion:\n\nAnomalía en la conexión del hilo 1: La conexión directa a Tovar sin pasar por La Grita puede representar un riesgo o una condición no planificada, que debería ser investigada y documentada para evitar problemas futuros.\nVerificación post-cambio: Es importante realizar pruebas adicionales para confirmar que la modificación no ha afectado otros aspectos de la red y que los hilos funcionan correctamente.\nRegistro y permisos: La actividad se realizó bajo un permiso formal (SOA) con un período de apertura y cierre bien documentado, lo cual es fundamental para trazabilidad y auditoría.\nComunicación y coordinación: La presencia conjunta de personal de ATIT Táchira y EDC Network indica buena coordinación, pero se debe mantener comunicación efectiva para gestionar cualquier eventualidad.\nDocumentación de cambios: La corrección del cableado debe quedar claramente registrada en los planos y documentación técnica para futuras referencias y mantenimiento.\n\n\nGerente Estatal de ATIT\n♦️Ing. William Castro\n\nCoordinador Telecomunicaciones  \n♦️Ing. Jose Parada\n\nPersonal  ejecutor:\n♦️ Marimar Rincón- Atit Táchira\n♦️ Mardonio Rebolledo- EDC Network\n♦️ Wilmer Aquino - EDC Network\n\nATIT, Somos la Voz Comando y Control del SEN",
+        "Fecha": "9/5/2025, 11:26:52 AM"
+    },
+    {
+        "Usuario": "marimar1149",
+        "Mensaje": "Estado: Táchira\n📆 Fecha de inicio:  02/09/2025\n📆 Fecha de cierre:  02/09/2025\n🕖 Hora de inicio: 9:24 am\n🕖 Hora de cierre: 11:24 pm\nlugar: Subestacion la  Grita.\n\nDescripcion: Reflectometría y verificacion de servicio EDC Network desde Subestación SC1- SE LA GRITA - Tovar.\n\nEn horas de la  mañana personal de ATIT Táchira se dirige a la subestación Grita en compañía de personal de EDC Network y MDS para realizar prueba de reflectometria y envío de potencia en hilos 7 y 8 de la bandeja B del ODF con vista a subestación SCI, notándose la novedad que el hilo 7 se encuentra dañado a nivel del conector FC  por lo tanto se ejecuta el cambio a hilo 11 quedando  el servicio en los hilos 8 y 11. Adicionalmente se verifican los hilos 10 y 11 de la bandeja C en ODF con dirección a la subestación  Tovar quedando operativo el servicio. Se realiza inspección del sistema de enfriamiento de aires acondicionados a nivel del shelter observando que los conductos están obstruidos y permiten la filtración hacia el interior del shelter. Los trabajos fueron realizados bajo permiso SOA, sin consecuencia bajo el N•: 1446343 abierto por el despachador Viloria a las 09:20 y cerrado a las 12:42\n\nImpacto: \n\n    Restablecimiento del servicio de comunicación:\n    La sustitución del hilo 7 por el hilo 11 en la bandeja B del ODF asegura la continuidad del servicio en los hilos 8 y 11 hacia la subestación SCI. Esto mantiene la conectividad y la operatividad del sistema, evitando posibles interrupciones en la transmisión de datos o energía.\n\n    Verificación y operación en la subestación Tovar:\n    La inspección y verificación de los hilos 10 y 11 en la bandeja C garantizan que el servicio hacia la subestación Tovar esté operativo, asegurando la estabilidad y confiabilidad de la red en esa área.\n\n    Mantenimiento preventivo en el sistema de enfriamiento:\n    La inspección del sistema de enfriamiento del shelter, aunque reveló conductos obstruidos y filtraciones, permite tomar acciones correctivas para prevenir daños mayores en los equipos, contribuyendo a la protección y continuidad del sistema.\n\n\nPuntos de atencion:\n\n    Daño en el hilo 7 y cambio a hilo 11:\n        Es importante documentar y monitorear el tipo de daño en el conector FC para evitar recurrencias similares.\n        Se debe verificar si los daños en los cables o conectores son resultado de condiciones ambientales, manipulación o defectos de fabricación.\n\n    Estado de los cables y conectores:\n        Revisar la integridad de otros cables y conectores en la bandeja B y en las bandejas relacionadas para prevenir fallas futuras.\n        Considerar una inspección periódica de los cables y conectores en las subestaciones.\n\n    Sistema de enfriamiento:\n        La obstrucción en los conductos y filtraciones puede afectar el rendimiento del sistema de enfriamiento, lo que podría poner en riesgo los equipos sensibles dentro del shelter.\n        Se recomienda realizar una limpieza y mantenimiento preventivo del sistema de enfriamiento para garantizar su correcto funcionamiento y evitar sobrecalentamientos o fallas.\n\n    Permiso y coordinación:\n        El trabajo se realizó bajo el permiso SOA, sin consecuencias, lo que indica buena coordinación. Sin embargo, es importante seguir manteniendo los permisos y registros adecuados para todos los trabajos futuros.\n\nGerente Estatal de ATIT\n♦️Ing. William Castro\n\nCoordinador Telecomunicaciones  \n♦️Ing. Jose Parada\n\nPersonal  ejecutor:\n♦️ Olga Lázaro - Atit Táchira\n♦️ Cleimar Bernal - EDC Network\n♦️ Carmelo Rodríguez - COR\n♦️ Carlos Durán - COR\n\nATIT, Somos la Voz Comando y Control del SEN “",
+        "Fecha": "9/5/2025, 11:31:36 AM"
+    },
+    {
+        "Usuario": "marimar1149",
+        "Mensaje": "Estado: Táchira\n📆  Fecha de inicio:  04/09/2025\n📆  Fecha de cierre:  04/09/2025\n🕖Hora de inicio: 9:25 am\n🕖 Hora de cierre: 15:45 pm\nlugar: Subestacion SAN ANTONIO.\n\nDescripcion: Reflectometría y verificacion de servicio EDC Network desde Subestación SC1- SE LA GRITA - Tovar.\n\nEn horas de la  mañana personal de ATIT Táchira en compañía de personal de EDC Network continua trabajos de ampliación. Se realiza  reflectometría en dirección a subestación Corozo y envío de potencia  para levantar el enlacé siendo satisfactorio.\n\nSe estableció el enlace desde la subestación San Antonio hasta la subestación San Cristóbal equipo DWDM, realizando tránsito a través de la subestación Corozo. A continuación, se detallan los hilos designados para el servicio: \nBandeja A:  hilos 7 y 8 para el futuro DWDM\nBandeja B:  hilos 3 y 8 enlace con el equipo Huawei (actualmente en producción).\n\nLos trabajos fueron realizados bajo permiso SOA, sin consecuencia bajo el N•: 1446110 abierto por el despachador Negreti a las 09:20 y cerro a las 13:42.\n\nImpacto: \n\n    Ampliación de infraestructura de red: La realización de trabajos de ampliación y la instalación de enlaces DWDM contribuyen a mejorar la capacidad y la redundancia de la red de comunicación, lo cual puede traducirse en una mayor fiabilidad y eficiencia operativa.\n\n    Mejoramiento de la conectividad entre subestaciones: La conexión establecida entre las subestaciones San Antonio, San Cristóbal y Corozo fortalece la infraestructura de comunicación, permitiendo una mejor gestión y monitoreo de la red eléctrica y de datos.\n\n    Pruebas y validaciones satisfactorias: La reflectometría y el envío de potencia exitosos indican que las instalaciones están operando correctamente, minimizando riesgos de fallas o interrupciones en el servicio.\n\nPuntos de atencion:\n\n    Documentación y permisos: La actividad fue realizada bajo el permiso SOA con un número específico, lo que indica cumplimiento de procedimientos. Es importante asegurar que toda la documentación esté completa y actualizada para futuras auditorías o inspecciones.\n\n    Monitoreo de enlaces: Aunque las pruebas iniciales fueron satisfactorias, se recomienda un monitoreo continuo para detectar posibles desviaciones o degradaciones en el rendimiento del enlace DWDM, especialmente en los tramos críticos.\n\n    Asignación de hilos y planificación futura: La distribución de hilos en las bandejas (hilos 7 y 8 para futuro DWDM, y hilos 3 y 8 para el enlace actual) requiere una planificación cuidadosa para evitar interferencias o conflictos en futuras ampliaciones o cambios.\n\n    Gestión de riesgos: Aunque no se reportan consecuencias durante los trabajos, es fundamental mantener protocolos de seguridad y contingencia en caso de eventualidades durante las operaciones.\n\n    Comunicación con las partes involucradas: La coordinación entre personal de ATIT Táchira, EDC Network y despachadores como Negreti es clave para asegurar que cualquier incidencia sea atendida oportunamente y que las actividades no afecten la operación normal.\n\n\nGerente Estatal de ATIT\n♦️Ing. William Castro\n\nCoordinador Telecomunicaciones  \n♦️Ing. Jose Parada\n\nPersonal  ejecutor:\n♦️ Olga Lázaro - Atit Táchira\n♦️ Wilmer Aquino - EDC Network\n♦️ Mardonio Rebolledo- EDC Network\n♦️ Carmelo Rodríguez - COR\n♦️ Carlos Durán - COR\n\nATIT, Somos la Voz Comando y Control del SEN “",
+        "Fecha": "9/5/2025, 11:35:07 AM"
+    }
+]
+//console.log(smsArray)
+export const cleanSMS = (sms) => {
+    // patrón de emojis opcionales
+    const emojiOpt = "[\\p{Emoji_Presentation}\\p{Extended_Pictographic}]*";
+
+    // Horas
+    const regexHoraInicio = new RegExp(`${emojiOpt}\\s*Hora(?:\\s+de)?\\s*inicio${emojiOpt}\\s*:?\\s*([\\d:]+(?:\\s*[APMapm]{2})?)`, "i");
+    const regexHoraCierre = new RegExp(`${emojiOpt}\\s*Hora(?:\\s+de)?\\s*cierre${emojiOpt}\\s*:?\\s*([\\d:]+(?:\\s*[APMapm]{2})?)`, "i");
+
+    // Fechas
+    const regexFechaInicio = new RegExp(`${emojiOpt}\\s*Fecha(?:\\s+de)?\\s*inicio${emojiOpt}\\s*:?\\s*(\\d{2}\\/\\d{2}\\/\\d{4})`, "i");
+    const regexFechaFinalizado = new RegExp(`${emojiOpt}\\s*Fecha(?:\\s+de)?\\s*(?:Finalizado|cierre)${emojiOpt}\\s*:?\\s*(\\d{2}\\/\\d{2}\\/\\d{4})`, "i");
+    const regexFechaUnica = new RegExp(`${emojiOpt}\\s*Fecha${emojiOpt}\\s*:?\\s*(\\d{2}\\/\\d{2}\\/\\d{4})`, "i");
+
+    // Secciones largas
+    const regexDescripcion = /Descripcion:\s*([\s\S]*?)(?=\n(?:Impacto|Puntos de|Gerente|Coordinador|Personal|COR|$))/i;
+    const regexImpacto = /Impacto:\s*([\s\S]*?)(?=\n(?:Puntos de|Gerente|Coordinador|Personal|COR|$))/i;
+    const regexPuntosAtencion = /Puntos de ?atencion:\s*([\s\S]*?)(?=\n(?:Gerente|Coordinador|Personal|COR|$))/i;
+    const regexPersonalEjecutor = /(?:📌|♦️)?\s*Personal\s+ejecutor:\s*([\s\S]*?)(?=\n(?:COR|Gerente|Coordinador|ATIT|$))/i;
+
+    // Lugar
+    const regexLugar = new RegExp(`${emojiOpt}\\s*lugar${emojiOpt}\\s*:?\\s*(.+)`, "i");
+
+    // ---- Fechas ----
+    let fechaInicio = null;
+    let fechaFinalizado = null;
+    const matchInicio = sms.match(regexFechaInicio);
+    const matchFinalizado = sms.match(regexFechaFinalizado);
+    const matchUnica = sms.match(regexFechaUnica);
+
+    if (matchInicio && matchFinalizado) {
+        fechaInicio = matchInicio[1];
+        fechaFinalizado = matchFinalizado[1];
+    } else if (matchUnica) {
+        fechaInicio = matchUnica[1];
+        fechaFinalizado = matchUnica[1];
+    }
+
+    // ---- Función de limpieza ----
+    const sanitizeText = (value) => {
+        if (!value) return undefined;
+        return value
+            .replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "") // elimina emojis
+            .replace(/\s+/g, " ") // colapsa espacios múltiples
+            .trim();
+    };
+
+    // ---- Extracciones ----
+    const horaInicio = sanitizeText(sms.match(regexHoraInicio)?.[1]);
+    const horaCierre = sanitizeText(sms.match(regexHoraCierre)?.[1]);
+    const descripcion = sanitizeText(sms.match(regexDescripcion)?.[1]);
+    const impacto = sanitizeText(sms.match(regexImpacto)?.[1]);
+    const puntosAtencion = sanitizeText(sms.match(regexPuntosAtencion)?.[1]);
+    const personalEjecutor = sanitizeText(sms.match(regexPersonalEjecutor)?.[1]);
+    const lugar = sanitizeText(sms.match(regexLugar)?.[1]);
+
+    return {
+        fechaInicio,
+        fechaFinalizado,
+        horaInicio,
+        horaCierre,
+        descripcion,
+        impacto,
+        puntosAtencion,
+        personalEjecutor,
+        lugar
+    };
+};
+
+
+for (let i = 0; i < smsArray.length; i++) {
+    console.log(cleanSMS(smsArray[i].Mensaje))
+}
