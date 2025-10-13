@@ -16,7 +16,7 @@ const dataFile = TEMP_DATA_FILE;
 console.log('📂 Verificando datos temporales...');
 
 
-bot.on("polling_error", (err) => console.error("Polling error:", err));
+//bot.on("polling_error", (err) => console.error("Polling error:", err));
 
 // Escuchar mensajes y filtrar por rango de fechas
 bot.on('message', (msg) => {
