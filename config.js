@@ -7,7 +7,18 @@ const MINUTO_REPORTE = 0; // minuto exacto (0-59)
 
 // 🕒 Generar expresión CRON automáticamente
 // '0 0 HORA * * DIA' → minutos=0, horas=HORA, díaSemana=DIA
-export const INTERVALO_REPORTE = `0 ${MINUTO_REPORTE} ${HORA_REPORTE} * * ${DIA_REPORTE}`;
+export const INTERVALO_REPORTE = async () => {
+
+    const hora = await Configuration.findFirst({
+        where: { id: 1 },
+        select: { hour: true }
+    });
+    const dia = await Configuration.findFirst({
+        where: { id: 1 },
+        select: { day: true }
+    });
+    return `0 ${MINUTO_REPORTE} ${hora} * * ${dia}`;
+}
 export const INTERVALO_PRUEBA = '0 */30 * * * *';
 
 

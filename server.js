@@ -1,11 +1,17 @@
 import express from "express";
 import fs from "fs";
+import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-
+import { Configuration } from "./utils/DBClient.js";
+import { loadMensajes, generarIncidencias } from "./functions.js";
 const app = express();
 const PORT = 1111;
-
+app.use(cors({
+  origin: "http://localhost:3000", // permite peticiones desde tu app Next.js
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"],
+}));
 // Necesario si usas módulos ES (type: module)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,36 +20,35 @@ const __dirname = path.dirname(__filename);
 const FILES_DIR = path.join(__dirname, "exports");
 app.use(express.static(path.join(process.cwd(), 'public'))); // sirve /public como /
 
-
 app.use(express.json());
 // 📄 Ruta para listar archivos
 app.get("/files", (req, res) => {
-    console.log("📂 Listando archivos...");
+  console.log("📂 Listando archivos...");
 
-    fs.readdir(FILES_DIR, (err, files) => {
-        if (err) return res.status(500).send("Error leyendo la carpeta");
+  fs.readdir(FILES_DIR, (err, files) => {
+    if (err) return res.status(500).send("Error leyendo la carpeta");
 
-        // Filtrar solo archivos Excel
-        const excelFiles = files.filter(
-            file => file.endsWith(".xls") || file.endsWith(".xlsx")
-        );
+    // Filtrar solo archivos Excel
+    const excelFiles = files.filter(
+      file => file.endsWith(".xls") || file.endsWith(".xlsx")
+    );
 
-        // Obtener fecha de creación y ordenar (más recientes primero)
-        const filesWithStats = excelFiles
-            .map(file => {
-                const filePath = path.join(FILES_DIR, file);
-                const stats = fs.statSync(filePath);
-                return {
-                    name: file,
-                    createdAt: stats.birthtime, // fecha de creación
-                };
-            })
-            .sort((a, b) => b.createdAt - a.createdAt); // más reciente arriba
+    // Obtener fecha de creación y ordenar (más recientes primero)
+    const filesWithStats = excelFiles
+      .map(file => {
+        const filePath = path.join(FILES_DIR, file);
+        const stats = fs.statSync(filePath);
+        return {
+          name: file,
+          createdAt: stats.birthtime, // fecha de creación
+        };
+      })
+      .sort((a, b) => b.createdAt - a.createdAt); // más reciente arriba
 
-        // Generar la tabla HTML
-        const rows = filesWithStats
-            .map(
-                f => `
+    // Generar la tabla HTML
+    const rows = filesWithStats
+      .map(
+        f => `
           <tr>
             <td>${f.name}</td>
             <td>${f.createdAt.toLocaleString()}</td>
@@ -57,10 +62,10 @@ app.get("/files", (req, res) => {
                       onclick="deleteFile('${f.name}')"/>
                </td>
           </tr>`
-            )
-            .join("");
+      )
+      .join("");
 
-        res.send(`
+    res.send(`
         <html>
           <head>
             <meta charset="utf-8"/>
@@ -114,39 +119,125 @@ app.get("/files", (req, res) => {
           </body>
         </html>
       `);
-    });
+  });
 });
 
-// Eliminar archivo
-app.delete("/delete/:file", (req, res) => {
-    const fileName = req.params.file;
-    const filePath = path.join(FILES_DIR, fileName);
+app.get("/files/next", (req, res) => {
+  console.log("📂 Listando archivos...");
 
-    if (!fs.existsSync(filePath)) {
-        return res.status(404).send("Archivo no encontrado");
+  fs.readdir(FILES_DIR, (err, files) => {
+    if (err) return res.status(500).send("Error leyendo la carpeta");
+
+    // Filtrar solo archivos Excel
+    const excelFiles = files.filter(
+      file => file.endsWith(".xls") || file.endsWith(".xlsx")
+    );
+
+    // Obtener fecha de creación y ordenar (más recientes primero)
+    const filesWithStats = excelFiles
+      .map(file => {
+        const filePath = path.join(FILES_DIR, file);
+        const stats = fs.statSync(filePath);
+        return {
+          name: file,
+          createdAt: stats.birthtime, // fecha de creación
+        };
+      })
+      .sort((a, b) => b.createdAt - a.createdAt); // más reciente arriba
+
+    const temporalMessages = loadMensajes();
+    const userNames = temporalMessages.map(msg => msg.Usuario);
+
+    const uniqueNames = userNames.filter((name, index) => {
+      return userNames.indexOf(name) === index;
+    });
+    console.log(userNames);
+    const data = {
+      nextReport: filesWithStats || null,
+      personal: uniqueNames,
+      messages: temporalMessages.length
+
     }
 
-    fs.unlink(filePath, err => {
-        if (err) {
-            console.error("❌ Error eliminando archivo:", err);
-            return res.status(500).send("Error eliminando el archivo");
-        }
-        console.log(`🗑️ Archivo eliminado: ${fileName}`);
-        res.sendStatus(200);
-    });
+    res.json(data);
+  });
 });
 
+// Actualizar fecha
 
+app.post("/date", async (req, res) => {
+
+  const { day, hour, presentacion, instructions } = req.body
+
+  console.log(day)
+  console.log(hour)
+  let data = {}
+  if (day) {
+    data.day = day
+  }
+  if (hour) {
+    data.hour = hour
+  }
+  if (presentacion) {
+    data.presentacion = presentacion
+  }
+  console.log(presentacion)
+  if (instructions) {
+    data.instructions = instructions
+  }
+  const config = await Configuration.update({
+    where: { id: 1 },
+    data: data
+  });
+  console.log(config)
+  res.json({ message: 'Fecha actualizada' });
+})
+// Eliminar archivo
+app.delete("/delete/:file", (req, res) => {
+  const fileName = req.params.file;
+  const filePath = path.join(FILES_DIR, fileName);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).send("Archivo no encontrado");
+  }
+
+  fs.unlink(filePath, err => {
+    if (err) {
+      console.error("❌ Error eliminando archivo:", err);
+      return res.status(500).send("Error eliminando el archivo");
+    }
+    console.log(`🗑️ Archivo eliminado: ${fileName}`);
+    res.sendStatus(200);
+  });
+});
 
 // ⬇️ Ruta para descargar archivos
 app.get("/download/:filename", (req, res) => {
-    const filePath = path.join(FILES_DIR, req.params.filename);
+  const filePath = path.join(FILES_DIR, req.params.filename);
 
-    if (fs.existsSync(filePath)) {
-        res.download(filePath);
-    } else {
-        res.status(404).send("Archivo no encontrado");
-    }
+  if (fs.existsSync(filePath)) {
+    res.download(filePath);
+  } else {
+    res.status(404).send("Archivo no encontrado");
+  }
 });
+
+
+app.get('/configuration', async (req, res) => {
+  const config = await Configuration.findFirst();
+  res.json(config);
+
+}
+)
+
+
+app.get('/generate', async (req, res) => {
+  generarIncidencias();
+  res.json({ message: 'Generando reporte' });
+}
+)
+
+
+
 
 app.listen(PORT, () => console.log(`Servidor en http://localhost:${PORT}/files`));

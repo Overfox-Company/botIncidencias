@@ -5,6 +5,7 @@ import { TEMP_DATA_FILE } from './config.js';
 import fs from 'fs';
 import cron from 'node-cron';
 import { generarIncidencias, guardarTemporal, analyzeSMSBeforeSave } from './functions.js';
+import { Configuration } from './utils/DBClient.js';
 
 
 const bot = new TelegramBot(TOKEN, { polling: true });
@@ -54,9 +55,13 @@ cron.schedule(INTERVALO_REPORTE, () => {
 });
 
 // Verificar al iniciar si es viernes y aún no se generó el reporte
-(function checkStartup() {
+(async function checkStartup() {
     const hoy = new Date();
-    if (hoy.getDay() === DIA_REPORTE) { // 5 = viernes
+    const dayReport = await Configuration.findFirst({
+        where: { id: 1 },
+        select: { day: true }
+    });
+    if (hoy.getDay() === dayReport) { // 5 = viernes
         const archivos = fs.readdirSync('.');
         const fechaHoy = hoy.toISOString().split('T')[0];
         const yaGenerado = archivos.some(a => a.includes(`reporte_${fechaHoy}.xlsx`));

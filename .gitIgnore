@@ -1,2 +1,6 @@
 /node_modules
 /exports
+/generated/prisma
+/temp
+/.env
+/.env.local
