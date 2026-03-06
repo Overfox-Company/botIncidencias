@@ -7,7 +7,12 @@ import { Configuration } from './utils/DBClient.js';
 
 const bot = new TelegramBot(TOKEN, { polling: true });
 const DEFAULT_HOUR = 11;
-const FORMATO_SMS = `📝 Formato de SMS requerido:
+const VARIANTES_VALIDAS = ['telecomunicaciones', 'infraestructura', 'automatizacion'];
+const COMANDOS_BASE = new Set(['/start', '/formato']);
+const construirFormatoSMS = (variante) => {
+    const coordinadorLabel = `coordinador de ${variante}`;
+
+    return `📝 Formato de SMS requerido:
 
 Estado: Táchira
 Fecha de inicio: DD/MM/AAAA
@@ -31,17 +36,26 @@ Puntos de atención: ...
 
 Gerente estatal de atit: ...
 
-coordinador de telecomunicaciones: ...
-coordinador de infraestructura: ...
-coordinador de automatizacion: ...
+${coordinadorLabel}: ...
 
 personal ejecutor:
 - Nombre 1
 - Nombre 2
 
 Personal de guardia:
-- Nombre 1`;
-const COMANDOS = new Set(['/start', '/formato']);
+- Nombre 1
+
+"ATIT, Somos la voz comando y control del SEN, nadie se cansa"
+`;
+};
+
+const FORMATO_SMS_GENERAL = `📝 Variantes disponibles:
+
+- /formato telecomunicaciones
+- /formato infraestructura
+- /formato automatizacion
+
+Debes usar solo una variante por SMS.`;
 
 // Archivo temporal donde guardamos mensajes para no perderlos si se apaga el bot
 const dataFile = TEMP_DATA_FILE;
@@ -55,16 +69,41 @@ const obtenerUsuario = (msg) => (
     'usuario'
 );
 
-const responderFormato = (chatId) => bot.sendMessage(chatId, FORMATO_SMS);
+const responderFormato = (chatId, variante) => {
+    if (!variante) {
+        bot.sendMessage(chatId, FORMATO_SMS_GENERAL);
+        return;
+    }
+
+    bot.sendMessage(chatId, construirFormatoSMS(variante));
+};
+
+const extraerVarianteFormato = (texto) => {
+    const [, variante] = texto.split(/\s+/, 2);
+    if (!variante) return null;
+    return variante.trim().toLowerCase();
+};
 
 const manejarComando = (msg, texto) => {
     if (texto === '/start') {
-        bot.sendMessage(msg.chat.id, `${MENSAJE_BIENVENIDA}\n\nUsa /formato para ver la plantilla del SMS.`);
+        bot.sendMessage(msg.chat.id, `${MENSAJE_BIENVENIDA}\n\nUsa /formato para ver las variantes de la plantilla del SMS.`);
         return true;
     }
 
-    if (texto === '/formato') {
-        responderFormato(msg.chat.id);
+    if (texto.startsWith('/formato')) {
+        const variante = extraerVarianteFormato(texto);
+
+        if (!variante) {
+            responderFormato(msg.chat.id);
+            return true;
+        }
+
+        if (!VARIANTES_VALIDAS.includes(variante)) {
+            bot.sendMessage(msg.chat.id, `❓ Variante no reconocida. Usa una de estas opciones:\n- ${VARIANTES_VALIDAS.join('\n- ')}`);
+            return true;
+        }
+
+        responderFormato(msg.chat.id, variante);
         return true;
     }
 
@@ -107,8 +146,9 @@ bot.on('message', (msg) => {
         return;
     }
 
-    if (texto.startsWith('/') && !COMANDOS.has(texto)) {
-        bot.sendMessage(msg.chat.id, '❓ Comando no reconocido. Usa /formato para ver la plantilla válida.');
+    const comandoBase = texto.split(/\s+/, 1)[0];
+    if (texto.startsWith('/') && !COMANDOS_BASE.has(comandoBase)) {
+        bot.sendMessage(msg.chat.id, '❓ Comando no reconocido. Usa /formato para ver las variantes válidas.');
         return;
     }
 

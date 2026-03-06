@@ -372,13 +372,18 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
         errors.push("El estatus debe ser: Resuelta o Pendiente por resolver.");
     }
 
-    const tieneCoordinador = Boolean(
-        parsed.coordinadorTelecomunicaciones ||
-        parsed.coordinadorInfraestructura ||
-        parsed.coordinadorAutomatizacion
-    );
-    if (!tieneCoordinador) {
-        errors.push("Debe indicar al menos un coordinador responsable.");
+    const coordinadores = [
+        ["telecomunicaciones", parsed.coordinadorTelecomunicaciones],
+        ["infraestructura", parsed.coordinadorInfraestructura],
+        ["automatizacion", parsed.coordinadorAutomatizacion]
+    ].filter(([, value]) => Boolean(value));
+
+    if (coordinadores.length === 0) {
+        errors.push("Debe indicar un coordinador responsable.");
+    }
+
+    if (coordinadores.length > 1) {
+        errors.push("Debe indicar solo un coordinador responsable según la variante del SMS.");
     }
 
     // --- 4. Validar personal ejecutor ---
@@ -427,6 +432,8 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
             coordinadorTelecomunicaciones: parsed.coordinadorTelecomunicaciones,
             coordinadorInfraestructura: parsed.coordinadorInfraestructura,
             coordinadorAutomatizacion: parsed.coordinadorAutomatizacion,
+            coordinadorTipo: coordinadores[0]?.[0] || null,
+            coordinadorResponsable: coordinadores[0]?.[1] || null,
             personalArray,
             personalGuardiaArray,
         }
