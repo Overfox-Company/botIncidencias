@@ -140,33 +140,47 @@ export const cleanSMS = (sms) => {
     // patrón de emojis opcionales
     const emojiOpt = "[\\p{Emoji_Presentation}\\p{Extended_Pictographic}]*";
 
+    const normalizedSMS = String(sms || "")
+        .replace(/\r\n/g, "\n")
+        .replace(/\r/g, "\n");
+
+    const sectionEndLookahead = String.raw`(?=\n(?:Estado|Fecha(?:\s+de)?\s*inicio|Fecha(?:\s+de)?\s*(?:finalizada|finalizado|cierre)|Hora(?:\s+de)?\s*inicio|Hora(?:\s+de)?\s*cierre|Hacer breve descripci[oó]n de la incidencia|Descripci[oó]n|[ÁA]rea de la incidencia|Lugar|Impacto|Importancia|Clasificaci[oó]n del impacto|Describir detalladamente los trabajos realizados durante la atenci[oó]n de la incidencia|Trabajos realizados|Estatus|Puntos de ?atenci[oó]n|Gerente estatal de atit|Gerente|Coordinador(?: de telecomunicaciones| de infraestructura| de automatizaci[oó]n)?|Personal ejecutor|Personal de guardia|COR)|$)`;
+
     // Horas
     const regexHoraInicio = new RegExp(`${emojiOpt}\\s*Hora(?:\\s+de)?\\s*inicio${emojiOpt}\\s*:?\\s*([\\d:]+(?:\\s*[APMapm]{2})?)`, "i");
     const regexHoraCierre = new RegExp(`${emojiOpt}\\s*Hora(?:\\s+de)?\\s*cierre${emojiOpt}\\s*:?\\s*([\\d:]+(?:\\s*[APMapm]{2})?)`, "i");
 
     // Fechas
     const regexFechaInicio = new RegExp(`${emojiOpt}\\s*Fecha(?:\\s+de)?\\s*inicio${emojiOpt}\\s*:?\\s*(\\d{2}\\/\\d{2}\\/\\d{4})`, "i");
-    const regexFechaFinalizado = new RegExp(`${emojiOpt}\\s*Fecha(?:\\s+de)?\\s*(?:Finalizado|cierre)${emojiOpt}\\s*:?\\s*(\\d{2}\\/\\d{2}\\/\\d{4})`, "i");
+    const regexFechaFinalizado = new RegExp(`${emojiOpt}\\s*Fecha(?:\\s+de)?\\s*(?:Finalizada|Finalizado|cierre)${emojiOpt}\\s*:?\\s*(\\d{2}\\/\\d{2}\\/\\d{4})`, "i");
     const regexFechaUnica = new RegExp(`${emojiOpt}\\s*Fecha${emojiOpt}\\s*:?\\s*(\\d{2}\\/\\d{2}\\/\\d{4})`, "i");
 
     // Secciones largas
-    const regexDescripcion = /Descripci[oó]n:\s*([\s\S]*?)(?=\n(?:Impacto|Puntos de|Gerente|Coordinador|Personal|COR|$))/i;
-
-    const regexImpacto = /Impacto:\s*([\s\S]*?)(?=\n(?:Puntos de|Gerente|Coordinador|Personal|COR|$))/i;
-    const regexPuntosAtencion = /Puntos de ?atenci[oó]n:\s*([\s\S]*?)(?=\n(?:Gerente|Coordinador|Personal|COR|$))/i;
-    const regexPersonalEjecutor = /(?:📌|♦️)?\s*Personal\s+ejecutor:\s*([\s\S]*?)(?=\n(?:COR|Gerente|Coordinador|ATIT|"ATIT|" ATIT|$))/i;
+    const regexDescripcion = new RegExp(`(?:Hacer breve descripci[oó]n de la incidencia|Descripci[oó]n)\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
+    const regexImpacto = new RegExp(`Impacto(?:\\s*\\([^)]*\\))?\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
+    const regexClasificacionImpacto = new RegExp(`(?:Importancia|Clasificaci[oó]n del impacto)(?:\\s*\\([^)]*\\))?\\s*:?\\s*(.+)`, "i");
+    const regexTrabajosRealizados = new RegExp(`(?:Describir detalladamente los trabajos realizados durante la atenci[oó]n de la incidencia|Trabajos realizados)\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
+    const regexPuntosAtencion = new RegExp(`Puntos de ?atenci[oó]n(?:\\s*\\([^)]*\\))?\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
+    const regexPersonalEjecutor = new RegExp(`(?:📌|♦️)?\\s*Personal\\s+ejecutor\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
+    const regexPersonalGuardia = new RegExp(`Personal de guardia\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
+    const regexGerenteEstatalAtit = new RegExp(`Gerente estatal de atit\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
+    const regexCoordinadorTelecom = new RegExp(`Coordinador de telecomunicaciones\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
+    const regexCoordinadorInfra = new RegExp(`Coordinador de infraestructura\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
+    const regexCoordinadorAutom = new RegExp(`Coordinador de automatizaci[oó]n\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
 
     // Lugar
     const regexLugar = new RegExp(`${emojiOpt}\\s*lugar${emojiOpt}\\s*:?\\s*(.+)`, "i");
+    const regexAreaIncidencia = new RegExp(`${emojiOpt}\\s*[áa]rea\\s+de\\s+la\\s+incidencia${emojiOpt}\\s*(?:\\([^)]*\\))?\\s*:?\\s*(.+)`, "i");
+    const regexEstado = new RegExp(`${emojiOpt}\\s*Estado${emojiOpt}\\s*:?\\s*(.+)`, "i");
 
     // estatus
     const regexEstatus = new RegExp(`${emojiOpt}\\s*Estatus${emojiOpt}\\s*:?\\s*(.+)`, "i");
     // ---- Fechas ----
     let fechaInicio = null;
     let fechaFinalizado = null;
-    const matchInicio = sms.match(regexFechaInicio);
-    const matchFinalizado = sms.match(regexFechaFinalizado);
-    const matchUnica = sms.match(regexFechaUnica);
+    const matchInicio = normalizedSMS.match(regexFechaInicio);
+    const matchFinalizado = normalizedSMS.match(regexFechaFinalizado);
+    const matchUnica = normalizedSMS.match(regexFechaUnica);
 
     if (matchInicio && matchFinalizado) {
         fechaInicio = matchInicio[1];
@@ -177,7 +191,7 @@ export const cleanSMS = (sms) => {
     }
 
     // ---- Función de limpieza ----
-    const sanitizeText = (value) => {
+    const sanitizeInlineText = (value) => {
         if (!value) return undefined;
         return value
             .replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "") // elimina emojis
@@ -185,24 +199,51 @@ export const cleanSMS = (sms) => {
             .trim();
     };
 
+    const sanitizeBlockText = (value) => {
+        if (!value) return undefined;
+        return value
+            .replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "")
+            .replace(/[ \t]+\n/g, "\n")
+            .replace(/\n{2,}/g, "\n")
+            .trim();
+    };
+
     // ---- Extracciones ----
-    const horaInicio = sanitizeText(sms.match(regexHoraInicio)?.[1]);
-    const horaCierre = sanitizeText(sms.match(regexHoraCierre)?.[1]);
-    const descripcion = sanitizeText(sms.match(regexDescripcion)?.[1]);
-    const impacto = sanitizeText(sms.match(regexImpacto)?.[1]);
-    const puntosAtencion = sanitizeText(sms.match(regexPuntosAtencion)?.[1]);
-    const personalEjecutor = sanitizeText(sms.match(regexPersonalEjecutor)?.[1]);
-    const lugar = sanitizeText(sms.match(regexLugar)?.[1]);
-    const estatus = sanitizeText(sms.match(regexEstatus)?.[1]);
+    const horaInicio = sanitizeInlineText(normalizedSMS.match(regexHoraInicio)?.[1]);
+    const horaCierre = sanitizeInlineText(normalizedSMS.match(regexHoraCierre)?.[1]);
+    const descripcion = sanitizeBlockText(normalizedSMS.match(regexDescripcion)?.[1]);
+    const impacto = sanitizeBlockText(normalizedSMS.match(regexImpacto)?.[1]);
+    const clasificacionImpacto = sanitizeInlineText(normalizedSMS.match(regexClasificacionImpacto)?.[1]);
+    const trabajosRealizados = sanitizeBlockText(normalizedSMS.match(regexTrabajosRealizados)?.[1]);
+    const puntosAtencion = sanitizeBlockText(normalizedSMS.match(regexPuntosAtencion)?.[1]);
+    const personalEjecutor = sanitizeBlockText(normalizedSMS.match(regexPersonalEjecutor)?.[1]);
+    const personalGuardia = sanitizeBlockText(normalizedSMS.match(regexPersonalGuardia)?.[1]);
+    const gerenteEstatalAtit = sanitizeInlineText(normalizedSMS.match(regexGerenteEstatalAtit)?.[1]);
+    const coordinadorTelecomunicaciones = sanitizeInlineText(normalizedSMS.match(regexCoordinadorTelecom)?.[1]);
+    const coordinadorInfraestructura = sanitizeInlineText(normalizedSMS.match(regexCoordinadorInfra)?.[1]);
+    const coordinadorAutomatizacion = sanitizeInlineText(normalizedSMS.match(regexCoordinadorAutom)?.[1]);
+    const areaIncidencia = sanitizeInlineText(normalizedSMS.match(regexAreaIncidencia)?.[1]);
+    const lugar = sanitizeInlineText(normalizedSMS.match(regexLugar)?.[1]) || areaIncidencia;
+    const estado = sanitizeInlineText(normalizedSMS.match(regexEstado)?.[1]);
+    const estatus = sanitizeInlineText(normalizedSMS.match(regexEstatus)?.[1]);
     return {
+        estado,
         fechaInicio,
         fechaFinalizado,
         horaInicio,
         horaCierre,
         descripcion,
+        areaIncidencia,
+        clasificacionImpacto,
         impacto,
+        trabajosRealizados,
         puntosAtencion,
+        gerenteEstatalAtit,
+        coordinadorTelecomunicaciones,
+        coordinadorInfraestructura,
+        coordinadorAutomatizacion,
         personalEjecutor,
+        personalGuardia,
         lugar,
         estatus
     };
@@ -220,16 +261,20 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
 
     // --- 1. Validar existencia de TODOS los campos ---
     const requiredFields = [
-
+        "estado",
         "fechaInicio",
         "fechaFinalizado",
         "horaInicio",
         "horaCierre",
-        "lugar",
+        "areaIncidencia",
         "descripcion",
         "impacto",
+        "clasificacionImpacto",
+        "trabajosRealizados",
         "puntosAtencion",
+        "gerenteEstatalAtit",
         "personalEjecutor",
+        "personalGuardia",
         "estatus"
     ];
     //  console.log(parsed)
@@ -302,9 +347,6 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
 
     const horaInicio = parseTimeString(parsed.horaInicio);
     const horaCierre = parseTimeString(parsed.horaCierre);
-    console.log(horaInicio)
-    console.log(parsed.horaCierre)
-    console.log(horaCierre)
     if (parsed.horaInicio && !horaInicio) errors.push("Hora de inicio inválida.");
     if (parsed.horaCierre && !horaCierre) errors.push("Hora de cierre inválida.");
     if (horaInicio && horaCierre) {
@@ -320,6 +362,25 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
         if (horaCierre?.ambiguous) errors.push(`Hora de cierre ambigua: ${horaCierre.original}`);
     }
 
+    const clasificacionesValidas = ["bajo", "medio", "alto"];
+    if (parsed.clasificacionImpacto && !clasificacionesValidas.includes(parsed.clasificacionImpacto.toLowerCase())) {
+        errors.push("La clasificación del impacto debe ser: bajo, medio o alto.");
+    }
+
+    const estatusValidos = ["resuelta", "pendiente por resolver"];
+    if (parsed.estatus && !estatusValidos.includes(parsed.estatus.toLowerCase())) {
+        errors.push("El estatus debe ser: Resuelta o Pendiente por resolver.");
+    }
+
+    const tieneCoordinador = Boolean(
+        parsed.coordinadorTelecomunicaciones ||
+        parsed.coordinadorInfraestructura ||
+        parsed.coordinadorAutomatizacion
+    );
+    if (!tieneCoordinador) {
+        errors.push("Debe indicar al menos un coordinador responsable.");
+    }
+
     // --- 4. Validar personal ejecutor ---
     const personalArray = (parsed.personalEjecutor || "")
         .replace(/♦️|♦|•|·|-\s|—|–|📌/g, "\n")
@@ -330,6 +391,17 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
 
     if (personalArray.length === 0) {
         errors.push("Personal ejecutor vacío o no reconocido.");
+    }
+
+    const personalGuardiaArray = (parsed.personalGuardia || "")
+        .replace(/♦️|♦|•|·|-\s|—|–|📌/g, "\n")
+        .replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "")
+        .split(/\n+/)
+        .map(s => s.trim())
+        .filter(Boolean);
+
+    if (personalGuardiaArray.length === 0) {
+        errors.push("Personal de guardia vacío o no reconocido.");
     }
 
     // --- Resultado ---
@@ -343,11 +415,20 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
             fechaFinalISO: fechaFinal ? fechaFinal.toISOString().slice(0, 10) : null,
             horaInicio24: horaInicio ? `${String(horaInicio.h).padStart(2, "0")}:${String(horaInicio.min).padStart(2, "0")}` : null,
             horaCierre24: horaCierre ? `${String(horaCierre.h).padStart(2, "0")}:${String(horaCierre.min).padStart(2, "0")}` : null,
+            estado: parsed.estado,
+            areaIncidencia: parsed.areaIncidencia,
             lugar: parsed.lugar,
             descripcion: parsed.descripcion,
             impacto: parsed.impacto,
+            clasificacionImpacto: parsed.clasificacionImpacto,
+            trabajosRealizados: parsed.trabajosRealizados,
             puntosAtencion: parsed.puntosAtencion,
+            gerenteEstatalAtit: parsed.gerenteEstatalAtit,
+            coordinadorTelecomunicaciones: parsed.coordinadorTelecomunicaciones,
+            coordinadorInfraestructura: parsed.coordinadorInfraestructura,
+            coordinadorAutomatizacion: parsed.coordinadorAutomatizacion,
             personalArray,
+            personalGuardiaArray,
         }
     };
 };
