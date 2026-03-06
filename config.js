@@ -1,23 +1,21 @@
+import { Configuration } from "./utils/DBClient.js";
 export const TOKEN = '7778423540:AAHYBOQJpbOYJeMqTEPbXmlC8w_DrcXCQIk'; // tu token aquí
 // 📅 Configuración del día y hora del reporte
 // 0 = Domingo, 1 = Lunes, 2 = Martes, 3 = Miércoles, 4 = Jueves, 5 = Viernes, 6 = Sábado
-export const DIA_REPORTE = 5;  // dia de la semana
+export const DIA_REPORTE = 4;  // dia de la semana
 const HORA_REPORTE = 11 // hora del dia en hora militar (0-23)
 const MINUTO_REPORTE = 0; // minuto exacto (0-59)
 
 // 🕒 Generar expresión CRON automáticamente
 // '0 0 HORA * * DIA' → minutos=0, horas=HORA, díaSemana=DIA
-export const INTERVALO_REPORTE = async () => {
+export async function INTERVALO_REPORTE () {
 
-    const hora = await Configuration.findFirst({
-        where: { id: 1 },
-        select: { hour: true }
+ 
+    const datos = await Configuration.findFirst({
+         where: { id: 1 },
     });
-    const dia = await Configuration.findFirst({
-        where: { id: 1 },
-        select: { day: true }
-    });
-    return `0 ${MINUTO_REPORTE} ${hora} * * ${dia}`;
+   // console.log(datos)
+    return `0 ${MINUTO_REPORTE} ${datos.hour} * * ${datos.day}`;
 }
 export const INTERVALO_PRUEBA = '0 */30 * * * *';
 
