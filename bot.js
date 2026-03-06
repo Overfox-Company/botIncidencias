@@ -49,19 +49,18 @@ bot.on('message', (msg) => {
 });
 
 // Programar tarea: todos los viernes a las 18:00
-cron.schedule(INTERVALO_REPORTE, () => {
-    console.log('🕒 Ejecutando tarea');
-    generarIncidencias();
-});
+
+
+
 
 // Verificar al iniciar si es viernes y aún no se generó el reporte
 (async function checkStartup() {
     const hoy = new Date();
-    const dayReport = await Configuration.findFirst({
-        where: { id: 1 },
-        select: { day: true }
-    });
-    if (hoy.getDay() === dayReport) { // 5 = viernes
+   /// const dayReport = await Configuration.findFirst({
+   //     where: { id: 1 },
+    //    select: { day: true }
+   // });
+    if (hoy.getDay() === 4) { // 5 = viernes
         const archivos = fs.readdirSync('.');
         const fechaHoy = hoy.toISOString().split('T')[0];
         const yaGenerado = archivos.some(a => a.includes(`reporte_${fechaHoy}.xlsx`));
@@ -77,4 +76,16 @@ cron.schedule(INTERVALO_REPORTE, () => {
 // se tiene que generar en un tiempo determinado y omitir los sms anteriores
 // en caso de que el bot se apague cuando vuelva a encender debe generar el reporte si es la fecha correspondiente generarlo
 // hay que hacerlo con un formato  de columnas y celdas personalizadas del sheet
+
+
+(async function program(){
+    const time = await  INTERVALO_REPORTE()
+    console.log(time)
+   cron.schedule(time, () => {
+    console.log('🕒 Ejecutando tarea');
+    generarIncidencias();
+       }
+     )
+    }
+)()
 console.log('✅ Bot iniciado correctamente. Esperando mensajes...');

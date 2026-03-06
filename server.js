@@ -224,6 +224,7 @@ app.get("/download/:filename", (req, res) => {
 
 
 app.get('/configuration', async (req, res) => {
+  console.log("se ejecuta la peticion")
   const config = await Configuration.findFirst();
   res.json(config);
 
