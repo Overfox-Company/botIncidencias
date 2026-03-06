@@ -8,7 +8,7 @@ import { Configuration } from './utils/DBClient.js';
 const bot = new TelegramBot(TOKEN, { polling: true });
 const DEFAULT_HOUR = 11;
 const VARIANTES_VALIDAS = ['telecomunicaciones', 'infraestructura', 'automatizacion'];
-const COMANDOS_BASE = new Set(['/start', '/formato']);
+const COMANDOS_BASE = new Set(['/start', '/telecomunicaciones', '/infraestructura', '/automatizacion']);
 const construirFormatoSMS = (variante) => {
     const coordinadorLabel = `coordinador de ${variante}`;
 
@@ -22,7 +22,7 @@ Hora de cierre: HH:MM AM/PM
 
 Hacer breve descripción de la incidencia: ...
 
-área de la incidencia: ...
+Area: SISTEMAS DE RESPALDO DE ENERGÍA | SISTEMA DE CLIMATIZACION | MANTENIMIENTO DE LA PLATAFORMA | TELEPROTECCIÓN, TELEMETRIA Y TELEMEDICION | ENLACES DE RADIOCOMUNICACIONES | ENLACES DE FIBRA OPTICA | RED DE DATOS Y SISTEMAS DE TELEFONIA | INFRAESTRUCTURA TECNOLÓGICA | SISTEMAS DE AUTOMATIZACIÓN | COMUNICACIONES MÓVILES
 
 Impacto: ...
 
@@ -42,18 +42,15 @@ personal ejecutor:
 - Nombre 1
 - Nombre 2
 
-Personal de guardia:
-- Nombre 1
-
 "ATIT, Somos la voz comando y control del SEN, nadie se cansa"
 `;
 };
 
 const FORMATO_SMS_GENERAL = `📝 Variantes disponibles:
 
-- /formato telecomunicaciones
-- /formato infraestructura
-- /formato automatizacion
+- /telecomunicaciones
+- /infraestructura
+- /automatizacion
 
 Debes usar solo una variante por SMS.`;
 
@@ -78,31 +75,19 @@ const responderFormato = (chatId, variante) => {
     bot.sendMessage(chatId, construirFormatoSMS(variante));
 };
 
-const extraerVarianteFormato = (texto) => {
-    const [, variante] = texto.split(/\s+/, 2);
-    if (!variante) return null;
-    return variante.trim().toLowerCase();
-};
+const extraerVarianteComando = (texto) => texto.replace(/^\//, '').trim().toLowerCase();
 
 const manejarComando = (msg, texto) => {
     if (texto === '/start') {
-        bot.sendMessage(msg.chat.id, `${MENSAJE_BIENVENIDA}\n\nUsa /formato para ver las variantes de la plantilla del SMS.`);
+        bot.sendMessage(msg.chat.id, `${MENSAJE_BIENVENIDA}\n\nUsa /telecomunicaciones, /infraestructura o /automatizacion para ver la plantilla del SMS.`);
         return true;
     }
 
-    if (texto.startsWith('/formato')) {
-        const variante = extraerVarianteFormato(texto);
-
-        if (!variante) {
-            responderFormato(msg.chat.id);
-            return true;
-        }
-
+    if (texto.startsWith('/')) {
+        const variante = extraerVarianteComando(texto);
         if (!VARIANTES_VALIDAS.includes(variante)) {
-            bot.sendMessage(msg.chat.id, `❓ Variante no reconocida. Usa una de estas opciones:\n- ${VARIANTES_VALIDAS.join('\n- ')}`);
-            return true;
+            return false;
         }
-
         responderFormato(msg.chat.id, variante);
         return true;
     }
@@ -138,7 +123,7 @@ bot.on('message', (msg) => {
     const texto = msg.text?.trim();
 
     if (!texto) {
-        bot.sendMessage(msg.chat.id, '⚠️ Solo puedo procesar mensajes de texto. Usa /formato para ver la plantilla.');
+        bot.sendMessage(msg.chat.id, '⚠️ Solo puedo procesar mensajes de texto. Usa /telecomunicaciones, /infraestructura o /automatizacion.');
         return;
     }
 
@@ -148,7 +133,7 @@ bot.on('message', (msg) => {
 
     const comandoBase = texto.split(/\s+/, 1)[0];
     if (texto.startsWith('/') && !COMANDOS_BASE.has(comandoBase)) {
-        bot.sendMessage(msg.chat.id, '❓ Comando no reconocido. Usa /formato para ver las variantes válidas.');
+        bot.sendMessage(msg.chat.id, '❓ Comando no reconocido. Usa /telecomunicaciones, /infraestructura o /automatizacion.');
         return;
     }
 

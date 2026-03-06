@@ -144,7 +144,7 @@ export const cleanSMS = (sms) => {
         .replace(/\r\n/g, "\n")
         .replace(/\r/g, "\n");
 
-    const sectionEndLookahead = String.raw`(?=\n(?:Estado|Fecha(?:\s+de)?\s*inicio|Fecha(?:\s+de)?\s*(?:finalizada|finalizado|cierre)|Hora(?:\s+de)?\s*inicio|Hora(?:\s+de)?\s*cierre|Hacer breve descripci[oó]n de la incidencia|Descripci[oó]n|[ÁA]rea de la incidencia|Lugar|Impacto|Importancia|Clasificaci[oó]n del impacto|Describir detalladamente los trabajos realizados durante la atenci[oó]n de la incidencia|Trabajos realizados|Estatus|Puntos de ?atenci[oó]n|Gerente estatal de atit|Gerente|Coordinador(?: de telecomunicaciones| de infraestructura| de automatizaci[oó]n)?|Personal ejecutor|Personal de guardia|COR)|$)`;
+    const sectionEndLookahead = String.raw`(?=\n(?:Estado|Fecha(?:\s+de)?\s*inicio|Fecha(?:\s+de)?\s*(?:finalizada|finalizado|cierre)|Hora(?:\s+de)?\s*inicio|Hora(?:\s+de)?\s*cierre|Hacer breve descripci[oó]n de la incidencia|Descripci[oó]n|[ÁA]rea(?:\s+de\s+la\s+incidencia)?|Lugar|Impacto|Importancia|Clasificaci[oó]n del impacto|Describir detalladamente los trabajos realizados durante la atenci[oó]n de la incidencia|Trabajos realizados|Estatus|Puntos de ?atenci[oó]n|Gerente estatal de atit|Gerente|Coordinador(?: de telecomunicaciones| de infraestructura| de automatizaci[oó]n)?|Personal ejecutor|COR)|$)`;
 
     // Horas
     const regexHoraInicio = new RegExp(`${emojiOpt}\\s*Hora(?:\\s+de)?\\s*inicio${emojiOpt}\\s*:?\\s*([\\d:]+(?:\\s*[APMapm]{2})?)`, "i");
@@ -162,7 +162,6 @@ export const cleanSMS = (sms) => {
     const regexTrabajosRealizados = new RegExp(`(?:Describir detalladamente los trabajos realizados durante la atenci[oó]n de la incidencia|Trabajos realizados)\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
     const regexPuntosAtencion = new RegExp(`Puntos de ?atenci[oó]n(?:\\s*\\([^)]*\\))?\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
     const regexPersonalEjecutor = new RegExp(`(?:📌|♦️)?\\s*Personal\\s+ejecutor\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
-    const regexPersonalGuardia = new RegExp(`Personal de guardia\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
     const regexGerenteEstatalAtit = new RegExp(`Gerente estatal de atit\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
     const regexCoordinadorTelecom = new RegExp(`Coordinador de telecomunicaciones\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
     const regexCoordinadorInfra = new RegExp(`Coordinador de infraestructura\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
@@ -170,7 +169,7 @@ export const cleanSMS = (sms) => {
 
     // Lugar
     const regexLugar = new RegExp(`${emojiOpt}\\s*lugar${emojiOpt}\\s*:?\\s*(.+)`, "i");
-    const regexAreaIncidencia = new RegExp(`${emojiOpt}\\s*[áa]rea\\s+de\\s+la\\s+incidencia${emojiOpt}\\s*(?:\\([^)]*\\))?\\s*:?\\s*(.+)`, "i");
+    const regexIndicador = new RegExp(`${emojiOpt}\\s*[áa]rea(?:\\s+de\\s+la\\s+incidencia)?${emojiOpt}\\s*(?:\\([^)]*\\))?\\s*:?\\s*(.+)`, "i");
     const regexEstado = new RegExp(`${emojiOpt}\\s*Estado${emojiOpt}\\s*:?\\s*(.+)`, "i");
 
     // estatus
@@ -217,13 +216,12 @@ export const cleanSMS = (sms) => {
     const trabajosRealizados = sanitizeBlockText(normalizedSMS.match(regexTrabajosRealizados)?.[1]);
     const puntosAtencion = sanitizeBlockText(normalizedSMS.match(regexPuntosAtencion)?.[1]);
     const personalEjecutor = sanitizeBlockText(normalizedSMS.match(regexPersonalEjecutor)?.[1]);
-    const personalGuardia = sanitizeBlockText(normalizedSMS.match(regexPersonalGuardia)?.[1]);
     const gerenteEstatalAtit = sanitizeInlineText(normalizedSMS.match(regexGerenteEstatalAtit)?.[1]);
     const coordinadorTelecomunicaciones = sanitizeInlineText(normalizedSMS.match(regexCoordinadorTelecom)?.[1]);
     const coordinadorInfraestructura = sanitizeInlineText(normalizedSMS.match(regexCoordinadorInfra)?.[1]);
     const coordinadorAutomatizacion = sanitizeInlineText(normalizedSMS.match(regexCoordinadorAutom)?.[1]);
-    const areaIncidencia = sanitizeInlineText(normalizedSMS.match(regexAreaIncidencia)?.[1]);
-    const lugar = sanitizeInlineText(normalizedSMS.match(regexLugar)?.[1]) || areaIncidencia;
+    const indicador = sanitizeInlineText(normalizedSMS.match(regexIndicador)?.[1]);
+    const lugar = sanitizeInlineText(normalizedSMS.match(regexLugar)?.[1]) || indicador;
     const estado = sanitizeInlineText(normalizedSMS.match(regexEstado)?.[1]);
     const estatus = sanitizeInlineText(normalizedSMS.match(regexEstatus)?.[1]);
     return {
@@ -233,7 +231,7 @@ export const cleanSMS = (sms) => {
         horaInicio,
         horaCierre,
         descripcion,
-        areaIncidencia,
+        indicador,
         clasificacionImpacto,
         impacto,
         trabajosRealizados,
@@ -243,7 +241,6 @@ export const cleanSMS = (sms) => {
         coordinadorInfraestructura,
         coordinadorAutomatizacion,
         personalEjecutor,
-        personalGuardia,
         lugar,
         estatus
     };
@@ -266,7 +263,7 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
         "fechaFinalizado",
         "horaInicio",
         "horaCierre",
-        "areaIncidencia",
+        "indicador",
         "descripcion",
         "impacto",
         "clasificacionImpacto",
@@ -274,7 +271,6 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
         "puntosAtencion",
         "gerenteEstatalAtit",
         "personalEjecutor",
-        "personalGuardia",
         "estatus"
     ];
     //  console.log(parsed)
@@ -367,6 +363,30 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
         errors.push("La clasificación del impacto debe ser: bajo, medio o alto.");
     }
 
+    const indicadoresPermitidos = [
+        "SISTEMAS DE RESPALDO DE ENERGÍA",
+        "SISTEMA DE CLIMATIZACION",
+        "MANTENIMIENTO DE LA PLATAFORMA",
+        "TELEPROTECCIÓN, TELEMETRIA Y TELEMEDICION",
+        "ENLACES DE RADIOCOMUNICACIONES",
+        "ENLACES DE FIBRA OPTICA",
+        "RED DE DATOS Y SISTEMAS DE TELEFONIA",
+        "INFRAESTRUCTURA TECNOLÓGICA",
+        "SISTEMAS DE AUTOMATIZACIÓN",
+        "COMUNICACIONES MÓVILES"
+    ];
+    const normalizarComparacion = (value) => String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .trim();
+    const indicadorValido = indicadoresPermitidos.find(
+        (item) => normalizarComparacion(item) === normalizarComparacion(parsed.indicador)
+    );
+    if (parsed.indicador && !indicadorValido) {
+        errors.push(`El área debe ser uno de los indicadores permitidos: ${indicadoresPermitidos.join(", ")}.`);
+    }
+
     const estatusValidos = ["resuelta", "pendiente por resolver"];
     if (parsed.estatus && !estatusValidos.includes(parsed.estatus.toLowerCase())) {
         errors.push("El estatus debe ser: Resuelta o Pendiente por resolver.");
@@ -398,17 +418,6 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
         errors.push("Personal ejecutor vacío o no reconocido.");
     }
 
-    const personalGuardiaArray = (parsed.personalGuardia || "")
-        .replace(/♦️|♦|•|·|-\s|—|–|📌/g, "\n")
-        .replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "")
-        .split(/\n+/)
-        .map(s => s.trim())
-        .filter(Boolean);
-
-    if (personalGuardiaArray.length === 0) {
-        errors.push("Personal de guardia vacío o no reconocido.");
-    }
-
     // --- Resultado ---
     return {
         ok: errors.length === 0,
@@ -421,7 +430,7 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
             horaInicio24: horaInicio ? `${String(horaInicio.h).padStart(2, "0")}:${String(horaInicio.min).padStart(2, "0")}` : null,
             horaCierre24: horaCierre ? `${String(horaCierre.h).padStart(2, "0")}:${String(horaCierre.min).padStart(2, "0")}` : null,
             estado: parsed.estado,
-            areaIncidencia: parsed.areaIncidencia,
+            indicador: indicadorValido || parsed.indicador || null,
             lugar: parsed.lugar,
             descripcion: parsed.descripcion,
             impacto: parsed.impacto,
@@ -435,7 +444,6 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
             coordinadorTipo: coordinadores[0]?.[0] || null,
             coordinadorResponsable: coordinadores[0]?.[1] || null,
             personalArray,
-            personalGuardiaArray,
         }
     };
 };
