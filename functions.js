@@ -5,6 +5,117 @@ import { TEMP_DATA_FILE, TEMPLATE_ROUTE, EXPORT_ROUTE } from './config.js';
 import ExcelJS from "exceljs";
 import moment from 'moment';
 
+const normalizarComparacion = (value) => String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+const stripTemplateFooter = (value) => {
+    if (!value) return value;
+
+    const lines = String(value).split('\n');
+    const footerIndex = lines.findIndex((line) => /^\s*["“”']?ATIT,\s*Somos la voz comando y control del SEN/i.test(line.trim()));
+
+    if (footerIndex === -1) {
+        return value;
+    }
+
+    return lines.slice(0, footerIndex).join('\n');
+};
+
+const isEllipsisValue = (value) => /^\.{3,}$/.test(String(value || '').trim());
+
+const includesNormalized = (text, snippet) => normalizarComparacion(text).includes(normalizarComparacion(snippet));
+
+const PERSONAL_HEADER_REGEX = /^\s*(?:📌|♦️)?\s*(Personal(?:\s+[^:\n]+)*)\s*:?\s*$/i;
+const NON_PERSONAL_SECTION_REGEX = /^\s*(?:Estado|Fecha(?:\s+de)?\s*inicio|Fecha(?:\s+de)?\s*(?:finalizada|finalizado|cierre)|Hora(?:\s+de)?\s*inicio|Hora(?:\s+de)?\s*cierre|Hacer breve descripci[oó]n de la incidencia|Descripci[oó]n|[ÁA]rea(?:\s+de\s+la\s+incidencia)?|Lugar|Impacto|Importancia|Clasificaci[oó]n del impacto|Actividades|Describir detalladamente los trabajos realizados durante la atenci[oó]n de la incidencia|Trabajos realizados|Estatus|Puntos de ?atenci[oó]n|Gerente estatal de atit|Gerente|Coordinador(?: de telecomunicaciones| de infraestructura| de automatizaci[oó]n)?|COR)(?:\s*:.*)?$/i;
+
+const extractPersonalSections = (sms) => {
+    const normalizedSMS = String(sms || "")
+        .replace(/\r\n/g, "\n")
+        .replace(/\r/g, "\n");
+
+    const lines = normalizedSMS.split("\n");
+    const sections = [];
+    let currentSection = null;
+
+    const flushSection = () => {
+        if (!currentSection) return;
+
+        const content = stripTemplateFooter(currentSection.lines.join("\n"))
+            .replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "")
+            .replace(/[ \t]+\n/g, "\n")
+            .replace(/\n{2,}/g, "\n")
+            .trim();
+
+        if (content) {
+            sections.push({
+                title: currentSection.title,
+                content,
+            });
+        }
+
+        currentSection = null;
+    };
+
+    for (const rawLine of lines) {
+        const line = rawLine.trim();
+
+        if (/^\s*["“”']?ATIT,\s*Somos la voz comando y control del SEN/i.test(line)) {
+            flushSection();
+            break;
+        }
+
+        const personalHeaderMatch = rawLine.match(PERSONAL_HEADER_REGEX);
+        if (personalHeaderMatch) {
+            flushSection();
+            currentSection = {
+                title: personalHeaderMatch[1].trim(),
+                lines: [],
+            };
+            continue;
+        }
+
+        if (currentSection && NON_PERSONAL_SECTION_REGEX.test(line)) {
+            flushSection();
+            continue;
+        }
+
+        if (currentSection) {
+            currentSection.lines.push(rawLine);
+        }
+    }
+
+    flushSection();
+    return sections;
+};
+
+const AREAS_POR_COORDINACION = {
+    automatizacion: [
+        'TELEPROTECCIÓN, TELEMETRIA Y TELEMEDICION',
+        'SISTEMAS DE AUTOMATIZACIÓN'
+    ],
+    infraestructura: [
+        'INFRAESTRUCTURA TECNOLÓGICA'
+    ],
+    telecomunicaciones: [
+        'SISTEMAS DE RESPALDO DE ENERGÍA',
+        'SISTEMA DE CLIMATIZACION',
+        'MANTENIMIENTO DE LA PLATAFORMA',
+        'ENLACES DE RADIOCOMUNICACIONES',
+        'ENLACES DE FIBRA OPTICA',
+        'RED DE DATOS Y SISTEMAS DE TELEFONIA',
+        'RED DE DATOS Y SISTEMAS',
+        'COMUNICACIONES MÓVILES'
+    ]
+};
+
+const indicadoresPermitidos = Object.values(AREAS_POR_COORDINACION).flat();
+
+const clasificacionesValidas = ['bajo', 'medio', 'alto'];
+const estatusValidos = ['resuelta', 'pendiente por resolver'];
+
 export function guardarTemporal(dataFile, mensaje) {
 
     let mensajes = [];
@@ -43,6 +154,10 @@ export const generarIncidencias = async () => {
 
         // Cargar mensajes desde archivo temporal
         const data = loadMensajes();
+
+        if (!Array.isArray(data) || data.length === 0) {
+            throw new Error('No hay mensajes en la carpeta temp para generar el reporte.');
+        }
 
         // Función para calcular el tiempo transcurrido
         const CalculateTime = (startDate, endDate, horaInicio, horaCierre) => {
@@ -91,6 +206,15 @@ export const generarIncidencias = async () => {
         // Insertar a partir de la fila 7
         sheet.spliceRows(7, 0, ...nuevoContenido);
 
+        for (let i = 0; i < nuevoContenido.length; i++) {
+            const row = sheet.getRow(7 + i);
+            row.getCell(15).alignment = {
+                ...(row.getCell(15).alignment || {}),
+                wrapText: true,
+                vertical: 'top'
+            };
+        }
+
         // Guardar el nuevo archivo con fecha/hora
         const outputPath = EXPORT_ROUTE + `incidencias_${moment().format('YYYY-MM-DD HH-mm')}.xlsx`;
         await workbook.xlsx.writeFile(outputPath);
@@ -99,9 +223,11 @@ export const generarIncidencias = async () => {
         deleteMensajes();
 
         console.log("Archivo generado con éxito en:", outputPath);
+        return outputPath;
 
     } catch (error) {
         console.error("Error al generar el archivo de incidencias:", error);
+        throw error;
     }
 };
 
@@ -144,7 +270,7 @@ export const cleanSMS = (sms) => {
         .replace(/\r\n/g, "\n")
         .replace(/\r/g, "\n");
 
-    const sectionEndLookahead = String.raw`(?=\n(?:Estado|Fecha(?:\s+de)?\s*inicio|Fecha(?:\s+de)?\s*(?:finalizada|finalizado|cierre)|Hora(?:\s+de)?\s*inicio|Hora(?:\s+de)?\s*cierre|Hacer breve descripci[oó]n de la incidencia|Descripci[oó]n|[ÁA]rea(?:\s+de\s+la\s+incidencia)?|Lugar|Impacto|Importancia|Clasificaci[oó]n del impacto|Describir detalladamente los trabajos realizados durante la atenci[oó]n de la incidencia|Trabajos realizados|Estatus|Puntos de ?atenci[oó]n|Gerente estatal de atit|Gerente|Coordinador(?: de telecomunicaciones| de infraestructura| de automatizaci[oó]n)?|Personal ejecutor|COR)|$)`;
+    const sectionEndLookahead = String.raw`(?=\n(?:Estado|Fecha(?:\s+de)?\s*inicio|Fecha(?:\s+de)?\s*(?:finalizada|finalizado|cierre)|Hora(?:\s+de)?\s*inicio|Hora(?:\s+de)?\s*cierre|Hacer breve descripci[oó]n de la incidencia|Descripci[oó]n|[ÁA]rea(?:\s+de\s+la\s+incidencia)?|Lugar|Impacto|Importancia|Clasificaci[oó]n del impacto|Actividades|Describir detalladamente los trabajos realizados durante la atenci[oó]n de la incidencia|Trabajos realizados|Estatus|Puntos de ?atenci[oó]n|Gerente estatal de atit|Gerente|Coordinador(?: de telecomunicaciones| de infraestructura| de automatizaci[oó]n)?|Personal(?:\s+[^:\n]+)*|["“”']?ATIT,|COR)|$)`;
 
     // Horas
     const regexHoraInicio = new RegExp(`${emojiOpt}\\s*Hora(?:\\s+de)?\\s*inicio${emojiOpt}\\s*:?\\s*([\\d:]+(?:\\s*[APMapm]{2})?)`, "i");
@@ -159,9 +285,8 @@ export const cleanSMS = (sms) => {
     const regexDescripcion = new RegExp(`(?:Hacer breve descripci[oó]n de la incidencia|Descripci[oó]n)\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
     const regexImpacto = new RegExp(`Impacto(?:\\s*\\([^)]*\\))?\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
     const regexClasificacionImpacto = new RegExp(`(?:Importancia|Clasificaci[oó]n del impacto)(?:\\s*\\([^)]*\\))?\\s*:?\\s*(.+)`, "i");
-    const regexTrabajosRealizados = new RegExp(`(?:Describir detalladamente los trabajos realizados durante la atenci[oó]n de la incidencia|Trabajos realizados)\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
+    const regexTrabajosRealizados = new RegExp(`(?:Actividades|Describir detalladamente los trabajos realizados durante la atenci[oó]n de la incidencia|Trabajos realizados)\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
     const regexPuntosAtencion = new RegExp(`Puntos de ?atenci[oó]n(?:\\s*\\([^)]*\\))?\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
-    const regexPersonalEjecutor = new RegExp(`(?:📌|♦️)?\\s*Personal\\s+ejecutor\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
     const regexGerenteEstatalAtit = new RegExp(`Gerente estatal de atit\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
     const regexCoordinadorTelecom = new RegExp(`Coordinador de telecomunicaciones\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
     const regexCoordinadorInfra = new RegExp(`Coordinador de infraestructura\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
@@ -200,7 +325,7 @@ export const cleanSMS = (sms) => {
 
     const sanitizeBlockText = (value) => {
         if (!value) return undefined;
-        return value
+        return stripTemplateFooter(value)
             .replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "")
             .replace(/[ \t]+\n/g, "\n")
             .replace(/\n{2,}/g, "\n")
@@ -215,7 +340,10 @@ export const cleanSMS = (sms) => {
     const clasificacionImpacto = sanitizeInlineText(normalizedSMS.match(regexClasificacionImpacto)?.[1]);
     const trabajosRealizados = sanitizeBlockText(normalizedSMS.match(regexTrabajosRealizados)?.[1]);
     const puntosAtencion = sanitizeBlockText(normalizedSMS.match(regexPuntosAtencion)?.[1]);
-    const personalEjecutor = sanitizeBlockText(normalizedSMS.match(regexPersonalEjecutor)?.[1]);
+    const personalSections = extractPersonalSections(normalizedSMS);
+    const personalEjecutor = personalSections.length > 0
+        ? personalSections.map((section) => `${section.title}:\n${section.content}`).join('\n\n')
+        : undefined;
     const gerenteEstatalAtit = sanitizeInlineText(normalizedSMS.match(regexGerenteEstatalAtit)?.[1]);
     const coordinadorTelecomunicaciones = sanitizeInlineText(normalizedSMS.match(regexCoordinadorTelecom)?.[1]);
     const coordinadorInfraestructura = sanitizeInlineText(normalizedSMS.match(regexCoordinadorInfra)?.[1]);
@@ -240,6 +368,7 @@ export const cleanSMS = (sms) => {
         coordinadorTelecomunicaciones,
         coordinadorInfraestructura,
         coordinadorAutomatizacion,
+        personalSections,
         personalEjecutor,
         lugar,
         estatus
@@ -255,35 +384,92 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
     const parsed = cleanSMS(sms);
     const errors = [];
     const warnings = [];
+    const smsNormalizado = normalizarComparacion(sms);
+    const addError = (message) => errors.push(message);
+    const coordinadores = [
+        ["telecomunicaciones", parsed.coordinadorTelecomunicaciones],
+        ["infraestructura", parsed.coordinadorInfraestructura],
+        ["automatizacion", parsed.coordinadorAutomatizacion]
+    ].filter(([, value]) => Boolean(value));
+    const coordinadorTipo = coordinadores[0]?.[0] || null;
+    const areasPermitidasCoordinacion = coordinadorTipo
+        ? (AREAS_POR_COORDINACION[coordinadorTipo] || [])
+        : indicadoresPermitidos;
+    const areaTemplateUntouched = areasPermitidasCoordinacion.filter((item) => smsNormalizado.includes(normalizarComparacion(item))).length >= Math.min(2, areasPermitidasCoordinacion.length);
+    const personalContienePlaceholder = (parsed.personalSections || []).some((section) => /(^|\n)\s*-?\s*Nombre\s+\d+/i.test(section.content));
 
-    // --- 1. Validar existencia de TODOS los campos ---
-    const requiredFields = [
-        "estado",
-        "fechaInicio",
-        "fechaFinalizado",
-        "horaInicio",
-        "horaCierre",
-        "indicador",
-        "descripcion",
-        "impacto",
-        "clasificacionImpacto",
-        "trabajosRealizados",
-        "puntosAtencion",
-        "gerenteEstatalAtit",
-        "personalEjecutor",
-        "estatus"
-    ];
-    //  console.log(parsed)
+    if (!parsed.estado) {
+        addError('Estado: indica el estado afectado.');
+    }
 
+    if (includesNormalized(sms, 'Fecha de inicio: DD/MM/AAAA')) {
+        addError('Fecha de inicio: reemplaza DD/MM/AAAA por la fecha real del inicio de la incidencia.');
+    } else if (!parsed.fechaInicio) {
+        addError('Fecha de inicio: falta completar este campo con formato DD/MM/AAAA.');
+    }
 
+    if (includesNormalized(sms, 'Fecha finalizada: DD/MM/AAAA')) {
+        addError('Fecha finalizada: reemplaza DD/MM/AAAA por la fecha real de cierre de la incidencia.');
+    } else if (!parsed.fechaFinalizado) {
+        addError('Fecha finalizada: falta completar este campo con formato DD/MM/AAAA.');
+    }
 
-    // Revisamos cuáles son nulos o undefined
-    const missingFields = requiredFields.filter(
-        (field) => parsed[field] === undefined || parsed[field] === null || parsed[field] === ""
-    );
-    // console.log(missingFields)
-    for (const field of missingFields) {
-        errors.push(`Falta el campo obligatorio: ${field}`);
+    if (includesNormalized(sms, 'Hora de inicio: HH:MM AM/PM')) {
+        addError('Hora de inicio: reemplaza HH:MM AM/PM por la hora real de inicio.');
+    } else if (!parsed.horaInicio) {
+        addError('Hora de inicio: falta completar este campo con formato HH:MM AM/PM.');
+    }
+
+    if (includesNormalized(sms, 'Hora de cierre: HH:MM AM/PM')) {
+        addError('Hora de cierre: reemplaza HH:MM AM/PM por la hora real de cierre.');
+    } else if (!parsed.horaCierre) {
+        addError('Hora de cierre: falta completar este campo con formato HH:MM AM/PM.');
+    }
+
+    if (!parsed.descripcion) {
+        addError('Descripción: falta completar este campo.');
+    } else if (includesNormalized(parsed.descripcion, 'hacer breve descripcion de la incidencia')) {
+        addError('Descripción: reemplaza el texto de ejemplo por la descripción real de la incidencia.');
+    }
+
+    if (!parsed.indicador) {
+        addError('Área: selecciona una sola área del listado.');
+    } else if (areaTemplateUntouched || /^-.*-$/.test(parsed.indicador.trim())) {
+        addError('Área: elimina las opciones del template y deja solo el área que corresponde a la incidencia.');
+    }
+
+    if (!parsed.impacto) {
+        addError('Impacto: falta completar este campo.');
+    } else if (isEllipsisValue(parsed.impacto)) {
+        addError('Impacto: reemplaza "..." por el impacto real de la incidencia.');
+    }
+
+    if (!parsed.clasificacionImpacto) {
+        addError('Importancia: indica si el impacto es bajo, medio o alto.');
+    } else if (parsed.clasificacionImpacto.includes('|') || includesNormalized(sms, 'Importancia: bajo | medio | alto')) {
+        addError('Importancia: reemplaza "bajo | medio | alto" por un solo valor: bajo, medio o alto.');
+    }
+
+    if (!parsed.trabajosRealizados) {
+        addError('Actividades: falta describir los trabajos realizados.');
+    } else if (includesNormalized(parsed.trabajosRealizados, 'describir detalladamente los trabajos realizados durante la atencion de la incidencia')) {
+        addError('Actividades: reemplaza el texto de ejemplo por las actividades realizadas.');
+    }
+
+    if (!parsed.puntosAtencion) {
+        addError('Puntos de atención: falta completar este campo.');
+    } else if (isEllipsisValue(parsed.puntosAtencion)) {
+        addError('Puntos de atención: reemplaza "..." por la información real.');
+    }
+
+    if (!parsed.gerenteEstatalAtit) {
+        addError('Gerente estatal de ATIT: falta indicar el responsable.');
+    }
+
+    if (!parsed.estatus) {
+        addError('Estatus: indica si la incidencia está Resuelta o Pendiente por resolver.');
+    } else if (parsed.estatus.includes('|') || includesNormalized(sms, 'Estatus: Resuelta | Pendiente por resolver')) {
+        addError('Estatus: reemplaza "Resuelta | Pendiente por resolver" por una sola opción.');
     }
 
     // --- 2. Validar fechas ---
@@ -343,8 +529,8 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
 
     const horaInicio = parseTimeString(parsed.horaInicio);
     const horaCierre = parseTimeString(parsed.horaCierre);
-    if (parsed.horaInicio && !horaInicio) errors.push("Hora de inicio inválida.");
-    if (parsed.horaCierre && !horaCierre) errors.push("Hora de cierre inválida.");
+    if (parsed.horaInicio && !horaInicio) errors.push("Hora de inicio inválida. Usa el formato HH:MM AM/PM.");
+    if (parsed.horaCierre && !horaCierre) errors.push("Hora de cierre inválida. Usa el formato HH:MM AM/PM.");
     if (horaInicio && horaCierre) {
         const start = horaInicio.h * 60 + horaInicio.min;
         const end = horaCierre.h * 60 + horaCierre.min;
@@ -358,64 +544,44 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
         if (horaCierre?.ambiguous) errors.push(`Hora de cierre ambigua: ${horaCierre.original}`);
     }
 
-    const clasificacionesValidas = ["bajo", "medio", "alto"];
     if (parsed.clasificacionImpacto && !clasificacionesValidas.includes(parsed.clasificacionImpacto.toLowerCase())) {
-        errors.push("La clasificación del impacto debe ser: bajo, medio o alto.");
+        errors.push("Importancia inválida. Debe ser uno de estos valores: bajo, medio o alto.");
     }
 
-    const indicadoresPermitidos = [
-        "SISTEMAS DE RESPALDO DE ENERGÍA",
-        "SISTEMA DE CLIMATIZACION",
-        "MANTENIMIENTO DE LA PLATAFORMA",
-        "TELEPROTECCIÓN, TELEMETRIA Y TELEMEDICION",
-        "ENLACES DE RADIOCOMUNICACIONES",
-        "ENLACES DE FIBRA OPTICA",
-        "RED DE DATOS Y SISTEMAS DE TELEFONIA",
-        "INFRAESTRUCTURA TECNOLÓGICA",
-        "SISTEMAS DE AUTOMATIZACIÓN",
-        "COMUNICACIONES MÓVILES"
-    ];
-    const normalizarComparacion = (value) => String(value || "")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toUpperCase()
-        .trim();
-    const indicadorValido = indicadoresPermitidos.find(
+    const indicadorValido = areasPermitidasCoordinacion.find(
         (item) => normalizarComparacion(item) === normalizarComparacion(parsed.indicador)
     );
-    if (parsed.indicador && !indicadorValido) {
-        errors.push(`El área debe ser uno de los indicadores permitidos: ${indicadoresPermitidos.join(", ")}.`);
+    if (parsed.indicador && !areaTemplateUntouched && !/^-.*-$/.test(parsed.indicador.trim()) && !indicadorValido) {
+        errors.push(`Área inválida para ${coordinadorTipo || 'la coordinación indicada'}. Debe ser una de estas opciones: ${areasPermitidasCoordinacion.join(", ")}.`);
     }
 
-    const estatusValidos = ["resuelta", "pendiente por resolver"];
     if (parsed.estatus && !estatusValidos.includes(parsed.estatus.toLowerCase())) {
-        errors.push("El estatus debe ser: Resuelta o Pendiente por resolver.");
+        errors.push("Estatus inválido. Debe ser: Resuelta o Pendiente por resolver.");
     }
-
-    const coordinadores = [
-        ["telecomunicaciones", parsed.coordinadorTelecomunicaciones],
-        ["infraestructura", parsed.coordinadorInfraestructura],
-        ["automatizacion", parsed.coordinadorAutomatizacion]
-    ].filter(([, value]) => Boolean(value));
 
     if (coordinadores.length === 0) {
-        errors.push("Debe indicar un coordinador responsable.");
+        errors.push("Coordinador: falta indicar el coordinador responsable según la plantilla seleccionada.");
     }
 
     if (coordinadores.length > 1) {
-        errors.push("Debe indicar solo un coordinador responsable según la variante del SMS.");
+        errors.push("Coordinador: deja solo un coordinador responsable según la variante del SMS.");
     }
 
     // --- 4. Validar personal ejecutor ---
-    const personalArray = (parsed.personalEjecutor || "")
-        .replace(/♦️|♦|•|·|-\s|—|–|📌/g, "\n")
-        .replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "")
-        .split(/\n+/)
-        .map(s => s.trim())
-        .filter(Boolean);
+    const personalArray = (parsed.personalSections || [])
+        .flatMap((section) => section.content
+            .replace(/♦️|♦|•|·|-\s|—|–|📌/g, "\n")
+            .replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "")
+            .split(/\n+/)
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .filter((line) => !/^Nombre\s+\d+$/i.test(line))
+        );
 
     if (personalArray.length === 0) {
-        errors.push("Personal ejecutor vacío o no reconocido.");
+        errors.push(personalContienePlaceholder
+            ? "Personal ejecutor: reemplaza Nombre 1 / Nombre 2 por el personal real que atendió la incidencia."
+            : "Personal ejecutor: falta indicar al menos una persona responsable.");
     }
 
     // --- Resultado ---
@@ -443,6 +609,7 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
             coordinadorAutomatizacion: parsed.coordinadorAutomatizacion,
             coordinadorTipo: coordinadores[0]?.[0] || null,
             coordinadorResponsable: coordinadores[0]?.[1] || null,
+            personalSections: parsed.personalSections || [],
             personalArray,
         }
     };

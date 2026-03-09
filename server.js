@@ -27,6 +27,8 @@ app.get("/files", (req, res) => {
 
   fs.readdir(FILES_DIR, (err, files) => {
     if (err) return res.status(500).send("Error leyendo la carpeta");
+    const temporalMessages = loadMensajes();
+    const pendingMessages = temporalMessages.length;
 
     // Filtrar solo archivos Excel
     const excelFiles = files.filter(
@@ -73,6 +75,10 @@ app.get("/files", (req, res) => {
             <style>
               body { font-family: sans-serif; padding: 40px; background: #fafafa; }
               h1 { margin-bottom: 20px; }
+              .toolbar { display:flex; align-items:center; gap:8px; margin-bottom: 20px; flex-wrap: wrap; }
+              .action-button { width: fit-content; cursor:pointer; padding: 12px 16px; border-radius: 12px; background-color: #F1F5F9; display:flex; align-items:center; gap:8px; border: 1px solid #CBD5E1; font-size: 14px; }
+              .action-button:disabled { cursor: not-allowed; opacity: 0.6; }
+              .pending-chip { padding: 8px 12px; border-radius: 999px; background: #DBEAFE; color: #1D4ED8; font-size: 14px; font-weight: 600; }
               table { border-collapse: collapse; width: 100%; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
               th, td { padding: 12px 16px; border-bottom: 1px solid #eee; }
               th { background: #f3f3f3; text-align: left; }
@@ -80,9 +86,13 @@ app.get("/files", (req, res) => {
             </style>
           </head>
           <body>
-          <div style="display:flex;  align-items:center; gap:8px">
+          <div class="toolbar">
                 <h1>📊 Archivos disponibles</h1>
-                <div style="width: fit-content; cursor:pointer; padding: 12px; border-radius: 12px; background-color: #F1F5F9; display:flex; align-items:center; gap:8px;" onclick="location.reload()">
+                <span class="pending-chip">Pendientes en temp: ${pendingMessages}</span>
+                <button class="action-button" type="button" id="generate-excel-btn" onclick="generateExcel()" ${pendingMessages === 0 ? 'disabled' : ''}>
+                  <span>Generar Excel</span>
+                </button>
+                <div class="action-button" onclick="location.reload()">
                   <span>Recargar</span>
                   <img src="/refresh1.svg" style="height:16px;width:16px;" alt="Placeholder" />
                 </div>
@@ -113,6 +123,31 @@ app.get("/files", (req, res) => {
                 }
               } catch (err) {
                 alert('Error: ' + err.message);
+              }
+            }
+
+            async function generateExcel() {
+              const button = document.getElementById('generate-excel-btn');
+              if (!button) return;
+
+              button.disabled = true;
+              const originalText = button.innerHTML;
+              button.innerHTML = '<span>Generando...</span>';
+
+              try {
+                const res = await fetch('/generate', { method: 'POST' });
+                const data = await res.json();
+
+                if (!res.ok) {
+                  throw new Error(data.message || 'No se pudo generar el Excel');
+                }
+
+                alert(data.message);
+                location.reload();
+              } catch (err) {
+                alert('Error: ' + err.message);
+                button.disabled = false;
+                button.innerHTML = originalText;
               }
             }
           </script>
@@ -232,11 +267,24 @@ app.get('/configuration', async (req, res) => {
 )
 
 
-app.get('/generate', async (req, res) => {
-  generarIncidencias();
-  res.json({ message: 'Generando reporte' });
-}
-)
+const handleGenerateReport = async (req, res) => {
+  try {
+    const mensajes = loadMensajes();
+
+    if (!Array.isArray(mensajes) || mensajes.length === 0) {
+      return res.status(400).json({ message: 'No hay información en la carpeta temp para generar el Excel.' });
+    }
+
+    const outputPath = await generarIncidencias();
+    res.json({ message: 'Excel generado correctamente.', file: path.basename(outputPath) });
+  } catch (error) {
+    console.error('❌ Error generando reporte manual:', error);
+    res.status(500).json({ message: 'Ocurrió un error al generar el Excel.' });
+  }
+};
+
+app.get('/generate', handleGenerateReport)
+app.post('/generate', handleGenerateReport)
 
 
 

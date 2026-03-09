@@ -8,9 +8,34 @@ import { Configuration } from './utils/DBClient.js';
 const bot = new TelegramBot(TOKEN, { polling: true });
 const DEFAULT_HOUR = 11;
 const VARIANTES_VALIDAS = ['telecomunicaciones', 'infraestructura', 'automatizacion'];
-const COMANDOS_BASE = new Set(['/start', '/formato']);
+const COMANDOS_BASE = new Set(['/start', '/formato', '/telecomunicaciones', '/infraestructura', '/automatizacion']);
+const COORDINADORES_POR_VARIANTE = {
+    telecomunicaciones: 'Ing Jose Parada',
+    infraestructura: 'Ing. Leonel Duarte',
+    automatizacion: 'Ing Freddy Ruiz'
+};
+const AREAS_POR_VARIANTE = {
+    automatizacion: [
+        'TELEPROTECCIÓN, TELEMETRIA Y TELEMEDICION',
+        'SISTEMAS DE AUTOMATIZACIÓN'
+    ],
+    infraestructura: [
+        'INFRAESTRUCTURA TECNOLÓGICA'
+    ],
+    telecomunicaciones: [
+        'SISTEMAS DE RESPALDO DE ENERGÍA',
+        'SISTEMA DE CLIMATIZACION',
+        'MANTENIMIENTO DE LA PLATAFORMA',
+        'ENLACES DE RADIOCOMUNICACIONES',
+        'ENLACES DE FIBRA OPTICA',
+        'RED DE DATOS Y SISTEMAS DE TELEFONIA',
+        'COMUNICACIONES MÓVILES'
+    ]
+};
 const construirFormatoSMS = (variante) => {
     const coordinadorLabel = `coordinador de ${variante}`;
+    const coordinadorNombre = COORDINADORES_POR_VARIANTE[variante] || '...';
+    const areas = (AREAS_POR_VARIANTE[variante] || []).map((area) => `- ${area}`).join('\n');
 
     return `
 Estado: Táchira
@@ -19,23 +44,26 @@ Fecha finalizada: DD/MM/AAAA
 Hora de inicio: HH:MM AM/PM
 Hora de cierre: HH:MM AM/PM
 
-Descripcion: hacer breve descripción de la incidencia: ...
+Descripción: hacer breve descripción de lo que ocurrio en la incidencia
 
-Área: ...
+Área: 
+${areas}
 
-Impacto: ...
+Impacto: En que afecta la empresa el que se haya resulto o no esta incidencia
 
 Importancia: bajo | medio | alto
 
-Actividades: describir detalladamente los trabajos realizados durante la atención de la incidencia: ...
+Actividades: describir detalladamente los trabajos realizados durante la atención de la incidencia
 
 Estatus: Resuelta | Pendiente por resolver
 
-Puntos de atención: ...
+Puntos de atención: Explicar si hubo algun apoyo de otra gerencia o coordinación, o si se requirió apoyo externo
 
-Gerente estatal de atit: ...
+Gerente estatal de atit:
+Ing. William Castro.
 
-${coordinadorLabel}: ...
+${coordinadorLabel}: 
+${coordinadorNombre}
 
 Personal ejecutor:
 - Nombre 1
@@ -74,31 +102,32 @@ const responderFormato = (chatId, variante) => {
     bot.sendMessage(chatId, construirFormatoSMS(variante));
 };
 
-const extraerVarianteFormato = (texto) => {
-    const [, variante] = texto.split(/\s+/, 2);
-    if (!variante) return null;
-    return variante.trim().toLowerCase();
-};
+const normalizarTexto = (texto) => String(texto || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+const normalizarComando = (texto) => normalizarTexto(texto.split(/\s+/, 1)[0].split('@')[0]);
+const extraerVarianteComando = (texto) => normalizarComando(texto).replace(/^\//, '');
 
 const manejarComando = (msg, texto) => {
-    if (texto === '/start') {
-        bot.sendMessage(msg.chat.id, `${MENSAJE_BIENVENIDA}\n\nUsa /formato para ver las variantes de la plantilla del SMS.`);
+    const comando = normalizarComando(texto);
+
+    if (comando === '/start') {
+        bot.sendMessage(msg.chat.id, `${MENSAJE_BIENVENIDA}\n\nUsa /telecomunicaciones, /infraestructura o /automatizacion para ver la plantilla del SMS.`);
         return true;
     }
 
-    if (texto.startsWith('/formato')) {
-        const variante = extraerVarianteFormato(texto);
+    if (comando === '/formato') {
+        responderFormato(msg.chat.id);
+        return true;
+    }
 
-        if (!variante) {
-            responderFormato(msg.chat.id);
-            return true;
-        }
-
+    if (texto.startsWith('/')) {
+        const variante = extraerVarianteComando(texto);
         if (!VARIANTES_VALIDAS.includes(variante)) {
-            bot.sendMessage(msg.chat.id, `❓ Variante no reconocida. Usa una de estas opciones:\n- ${VARIANTES_VALIDAS.join('\n- ')}`);
-            return true;
+            return false;
         }
-
         responderFormato(msg.chat.id, variante);
         return true;
     }
@@ -134,7 +163,7 @@ bot.on('message', (msg) => {
     const texto = msg.text?.trim();
 
     if (!texto) {
-        bot.sendMessage(msg.chat.id, '⚠️ Solo puedo procesar mensajes de texto. Usa /formato para ver la plantilla.');
+        bot.sendMessage(msg.chat.id, '⚠️ Solo puedo procesar mensajes de texto. Usa /telecomunicaciones, /infraestructura o /automatizacion.');
         return;
     }
 
@@ -142,9 +171,9 @@ bot.on('message', (msg) => {
         return;
     }
 
-    const comandoBase = texto.split(/\s+/, 1)[0];
+    const comandoBase = normalizarComando(texto);
     if (texto.startsWith('/') && !COMANDOS_BASE.has(comandoBase)) {
-        bot.sendMessage(msg.chat.id, '❓ Comando no reconocido. Usa /formato para ver las variantes válidas.');
+        bot.sendMessage(msg.chat.id, '❓ Comando no reconocido. Usa /telecomunicaciones, /infraestructura o /automatizacion.');
         return;
     }
 

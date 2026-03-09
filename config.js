@@ -1,4 +1,3 @@
-import { Configuration } from "./utils/DBClient.js";
 export const TOKEN = '7778423540:AAHYBOQJpbOYJeMqTEPbXmlC8w_DrcXCQIk'; // tu token aquí
 // 📅 Configuración del día y hora del reporte
 // 0 = Domingo, 1 = Lunes, 2 = Martes, 3 = Miércoles, 4 = Jueves, 5 = Viernes, 6 = Sábado
@@ -8,13 +7,15 @@ const MINUTO_REPORTE = 0; // minuto exacto (0-59)
 
 // 🕒 Generar expresión CRON automáticamente
 // '0 0 HORA * * DIA' → minutos=0, horas=HORA, díaSemana=DIA
-export async function INTERVALO_REPORTE () {
+export async function INTERVALO_REPORTE() {
 
- 
+    const { Configuration } = await import("./utils/DBClient.js");
+
+
     const datos = await Configuration.findFirst({
-         where: { id: 1 },
+        where: { id: 1 },
     });
-   // console.log(datos)
+    // console.log(datos)
     return `0 ${MINUTO_REPORTE} ${datos.hour} * * ${datos.day}`;
 }
 export const INTERVALO_PRUEBA = '0 */30 * * * *';
