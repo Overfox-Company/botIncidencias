@@ -1,5 +1,5 @@
 /node_modules
-/exports
+exports
 /generated/prisma
 /temp
 /.env
