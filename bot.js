@@ -4,7 +4,7 @@ import fs from 'fs';
 import cron from 'node-cron';
 import { generarIncidencias, guardarTemporal, analyzeSMSBeforeSave } from './functions.js';
 import { Configuration } from './utils/DBClient.js';
-
+// nury
 const bot = new TelegramBot(TOKEN, { polling: true });
 const DEFAULT_HOUR = 11;
 const VARIANTES_VALIDAS = ['telecomunicaciones', 'infraestructura', 'automatizacion'];
