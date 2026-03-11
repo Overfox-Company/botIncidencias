@@ -396,7 +396,8 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
     const areasPermitidasCoordinacion = coordinadorTipo
         ? (AREAS_POR_COORDINACION[coordinadorTipo] || [])
         : indicadoresPermitidos;
-    const areaTemplateUntouched = areasPermitidasCoordinacion.filter((item) => smsNormalizado.includes(normalizarComparacion(item))).length >= Math.min(2, areasPermitidasCoordinacion.length);
+    const areaTemplateUntouched = areasPermitidasCoordinacion.length > 1
+        && areasPermitidasCoordinacion.filter((item) => smsNormalizado.includes(normalizarComparacion(item))).length >= Math.min(2, areasPermitidasCoordinacion.length);
     const personalContienePlaceholder = (parsed.personalSections || []).some((section) => /(^|\n)\s*-?\s*Nombre\s+\d+/i.test(section.content));
 
     if (!parsed.estado) {

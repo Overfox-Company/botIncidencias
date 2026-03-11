@@ -249,3 +249,17 @@ test('analyzeSMSBeforeSave valida puntos de atención cuando se informa con plac
     assert.equal(result.ok, false);
     assert.match(result.errors.join('\n'), /Puntos de atención: reemplaza "\.\.\." por la información real/);
 });
+
+test('analyzeSMSBeforeSave acepta la única área válida en infraestructura', () => {
+    const sms = buildValidTelecomSms({
+        area: 'INFRAESTRUCTURA TECNOLÓGICA',
+        coordinadorTitulo: 'coordinador de infraestructura',
+        coordinador: 'Ing. Leonel Duarte'
+    });
+
+    const result = analyzeSMSBeforeSave(sms);
+
+    assert.equal(result.ok, true);
+    assert.equal(result.normalized.coordinadorTipo, 'infraestructura');
+    assert.equal(result.normalized.indicador, 'INFRAESTRUCTURA TECNOLÓGICA');
+});
