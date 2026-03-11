@@ -265,6 +265,7 @@ export const deleteMensajes = () => {
 export const cleanSMS = (sms) => {
     // patrón de emojis opcionales
     const emojiOpt = "[\\p{Emoji_Presentation}\\p{Extended_Pictographic}]*";
+    const linePrefix = String.raw`(?:^|\n)\s*`;
 
     const normalizedSMS = String(sms || "")
         .replace(/\r\n/g, "\n")
@@ -273,13 +274,13 @@ export const cleanSMS = (sms) => {
     const sectionEndLookahead = String.raw`(?=\n(?:Estado|Fecha(?:\s+de)?\s*inicio|Fecha(?:\s+de)?\s*(?:finalizada|finalizado|cierre)|Hora(?:\s+de)?\s*inicio|Hora(?:\s+de)?\s*cierre|Hacer breve descripci[oó]n de la incidencia|Descripci[oó]n|[ÁA]rea(?:\s+de\s+la\s+incidencia)?|Lugar|Impacto|Importancia|Clasificaci[oó]n del impacto|Actividades|Describir detalladamente los trabajos realizados durante la atenci[oó]n de la incidencia|Trabajos realizados|Estatus|Puntos de ?atenci[oó]n|Gerente estatal de atit|Gerente|Coordinador(?: de telecomunicaciones| de infraestructura| de automatizaci[oó]n)?|Personal(?:\s+[^:\n]+)*|["“”']?ATIT,|COR)|$)`;
 
     // Horas
-    const regexHoraInicio = new RegExp(`${emojiOpt}\\s*Hora(?:\\s+de)?\\s*inicio${emojiOpt}\\s*:?\\s*([\\d:]+(?:\\s*[APMapm]{2})?)`, "i");
-    const regexHoraCierre = new RegExp(`${emojiOpt}\\s*Hora(?:\\s+de)?\\s*cierre${emojiOpt}\\s*:?\\s*([\\d:]+(?:\\s*[APMapm]{2})?)`, "i");
+    const regexHoraInicio = new RegExp(`${linePrefix}${emojiOpt}\\s*Hora(?:\\s+de)?\\s*inicio${emojiOpt}\\s*:?\\s*([^\\n]+)`, "i");
+    const regexHoraCierre = new RegExp(`${linePrefix}${emojiOpt}\\s*Hora(?:\\s+de)?\\s*cierre${emojiOpt}\\s*:?\\s*([^\\n]+)`, "i");
 
     // Fechas
-    const regexFechaInicio = new RegExp(`${emojiOpt}\\s*Fecha(?:\\s+de)?\\s*inicio${emojiOpt}\\s*:?\\s*(\\d{2}\\/\\d{2}\\/\\d{4})`, "i");
-    const regexFechaFinalizado = new RegExp(`${emojiOpt}\\s*Fecha(?:\\s+de)?\\s*(?:Finalizada|Finalizado|cierre)${emojiOpt}\\s*:?\\s*(\\d{2}\\/\\d{2}\\/\\d{4})`, "i");
-    const regexFechaUnica = new RegExp(`${emojiOpt}\\s*Fecha${emojiOpt}\\s*:?\\s*(\\d{2}\\/\\d{2}\\/\\d{4})`, "i");
+    const regexFechaInicio = new RegExp(`${linePrefix}${emojiOpt}\\s*Fecha(?:\\s+de)?\\s*inicio${emojiOpt}\\s*:?\\s*(\\d{2}\\/\\d{2}\\/\\d{4})`, "i");
+    const regexFechaFinalizado = new RegExp(`${linePrefix}${emojiOpt}\\s*Fecha(?:\\s+de)?\\s*(?:Finalizada|Finalizado|cierre)${emojiOpt}\\s*:?\\s*(\\d{2}\\/\\d{2}\\/\\d{4})`, "i");
+    const regexFechaUnica = new RegExp(`${linePrefix}${emojiOpt}\\s*Fecha${emojiOpt}\\s*:?\\s*(\\d{2}\\/\\d{2}\\/\\d{4})`, "i");
 
     // Secciones largas
     const regexDescripcion = new RegExp(`(?:Hacer breve descripci[oó]n de la incidencia|Descripci[oó]n)\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
@@ -293,12 +294,12 @@ export const cleanSMS = (sms) => {
     const regexCoordinadorAutom = new RegExp(`Coordinador de automatizaci[oó]n\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
 
     // Lugar
-    const regexLugar = new RegExp(`${emojiOpt}\\s*lugar${emojiOpt}\\s*:?\\s*(.+)`, "i");
-    const regexIndicador = new RegExp(`${emojiOpt}\\s*[áa]rea(?:\\s+de\\s+la\\s+incidencia)?${emojiOpt}\\s*(?:\\([^)]*\\))?\\s*:?\\s*(.+)`, "i");
-    const regexEstado = new RegExp(`${emojiOpt}\\s*Estado${emojiOpt}\\s*:?\\s*(.+)`, "i");
+    const regexLugar = new RegExp(`${linePrefix}${emojiOpt}\\s*lugar${emojiOpt}\\s*:?\\s*([^\\n]+)`, "i");
+    const regexIndicador = new RegExp(`${linePrefix}${emojiOpt}\\s*[áa]rea(?:\\s+de\\s+la\\s+incidencia)?${emojiOpt}\\s*(?:\\([^)]*\\))?\\s*:?\\s*([^\\n]+)`, "i");
+    const regexEstado = new RegExp(`${linePrefix}${emojiOpt}\\s*Estado${emojiOpt}\\s*:?\\s*([^\\n]+)`, "i");
 
     // estatus
-    const regexEstatus = new RegExp(`${emojiOpt}\\s*Estatus${emojiOpt}\\s*:?\\s*(.+)`, "i");
+    const regexEstatus = new RegExp(`${linePrefix}${emojiOpt}\\s*Estatus${emojiOpt}\\s*:?\\s*([^\\n]+)`, "i");
     // ---- Fechas ----
     let fechaInicio = null;
     let fechaFinalizado = null;
