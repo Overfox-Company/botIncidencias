@@ -1,4 +1,4 @@
-export const TOKEN = '7778423540:AAHYBOQJpbOYJeMqTEPbXmlC8w_DrcXCQIk'; // tu token aquí
+export const TOKEN = '8757545402:AAGC3UJ2tkToSzEK3vdGW9o5su7unDCTZb8'; // tu token aquí
 // 📅 Configuración del día y hora del reporte
 // 0 = Domingo, 1 = Lunes, 2 = Martes, 3 = Miércoles, 4 = Jueves, 5 = Viernes, 6 = Sábado
 export const DIA_REPORTE = 4;  // dia de la semana
@@ -23,7 +23,7 @@ export const INTERVALO_PRUEBA = '0 */30 * * * *';
 
 //Mensajes de bienvenida
 
-const Presentacion = '👋 ¡Hola soy el asistente de marimar! Estoy aquí para ayudarla en su flujo de trabajo'
+const Presentacion = '👋 ¡Hola soy el asistente de la gerencia ATIT Táchira! Estoy aquí para ayudar a procesar las incidencias'
 const Instrucciones = '📋 Envía cualquier mensaje y lo registraré para generar un reporte semanal de todas las incidencias que surjan'
 export const MENSAJE_BIENVENIDA = `${Presentacion}\n\n${Instrucciones}`;
 
