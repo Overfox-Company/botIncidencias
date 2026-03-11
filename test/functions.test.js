@@ -263,3 +263,39 @@ test('analyzeSMSBeforeSave acepta la única área válida en infraestructura', (
     assert.equal(result.normalized.coordinadorTipo, 'infraestructura');
     assert.equal(result.normalized.indicador, 'INFRAESTRUCTURA TECNOLÓGICA');
 });
+
+test('analyzeSMSBeforeSave tolera viñetas y puntuación final en campos cortos', () => {
+    const sms = buildValidTelecomSms({
+        area: '- SISTEMAS DE RESPALDO DE ENERGÍA.',
+        importancia: '* alto.',
+        estatus: 'Resuelta.',
+        gerente: '- Ing. William Castro.',
+        coordinador: '* Ing Jose Parada.'
+    });
+
+    const result = analyzeSMSBeforeSave(sms);
+
+    assert.equal(result.ok, true);
+    assert.equal(result.parsed.indicador, 'SISTEMAS DE RESPALDO DE ENERGÍA');
+    assert.equal(result.parsed.clasificacionImpacto, 'alto');
+    assert.equal(result.parsed.estatus, 'Resuelta');
+    assert.equal(result.parsed.gerenteEstatalAtit, 'Ing. William Castro');
+    assert.equal(result.parsed.coordinadorTelecomunicaciones, 'Ing Jose Parada');
+});
+
+test('analyzeSMSBeforeSave tolera puntuación final en infraestructura', () => {
+    const sms = buildValidTelecomSms({
+        area: 'INFRAESTRUCTURA TECNOLÓGICA.',
+        importancia: 'bajo.',
+        estatus: 'Resuelta.',
+        coordinadorTitulo: 'coordinador de infraestructura',
+        coordinador: 'Ing. Leonel Duarte.'
+    });
+
+    const result = analyzeSMSBeforeSave(sms);
+
+    assert.equal(result.ok, true);
+    assert.equal(result.normalized.coordinadorTipo, 'infraestructura');
+    assert.equal(result.normalized.indicador, 'INFRAESTRUCTURA TECNOLÓGICA');
+    assert.equal(result.parsed.estatus, 'Resuelta');
+});

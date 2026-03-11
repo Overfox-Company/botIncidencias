@@ -27,6 +27,10 @@ const stripTemplateFooter = (value) => {
 const isEllipsisValue = (value) => /^\.{3,}$/.test(String(value || '').trim());
 
 const includesNormalized = (text, snippet) => normalizarComparacion(text).includes(normalizarComparacion(snippet));
+const stripHumanFormattingNoise = (value) => String(value || '')
+    .replace(/^\s*(?:[-*•·–—]+|\d+[.)])\s*/, '')
+    .replace(/[.;:,]+$/g, '')
+    .trim();
 
 const PERSONAL_HEADER_REGEX = /^\s*(?:📌|♦️)?\s*(Personal(?:\s+[^:\n]+)*)\s*:?\s*$/i;
 const NON_PERSONAL_SECTION_REGEX = /^\s*(?:Estado|Fecha(?:\s+de)?\s*inicio|Fecha(?:\s+de)?\s*(?:finalizada|finalizado|cierre)|Hora(?:\s+de)?\s*inicio|Hora(?:\s+de)?\s*cierre|Hacer breve descripci[oó]n de la incidencia|Descripci[oó]n|[ÁA]rea(?:\s+de\s+la\s+incidencia)?|Lugar|Impacto|Importancia|Clasificaci[oó]n del impacto|Actividades|Describir detalladamente los trabajos realizados durante la atenci[oó]n de la incidencia|Trabajos realizados|Estatus|Puntos de ?atenci[oó]n|Gerente estatal de atit|Gerente|Coordinador(?: de telecomunicaciones| de infraestructura| de automatizaci[oó]n)?|COR)(?:\s*:.*)?$/i;
@@ -318,10 +322,10 @@ export const cleanSMS = (sms) => {
     // ---- Función de limpieza ----
     const sanitizeInlineText = (value) => {
         if (!value) return undefined;
-        return value
+        return stripHumanFormattingNoise(value
             .replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "") // elimina emojis
             .replace(/\s+/g, " ") // colapsa espacios múltiples
-            .trim();
+            .trim());
     };
 
     const sanitizeBlockText = (value) => {
