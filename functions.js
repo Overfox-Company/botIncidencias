@@ -457,9 +457,7 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
         addError('Actividades: reemplaza el texto de ejemplo por las actividades realizadas.');
     }
 
-    if (!parsed.puntosAtencion) {
-        addError('Puntos de atención: falta completar este campo.');
-    } else if (isEllipsisValue(parsed.puntosAtencion)) {
+    if (parsed.puntosAtencion && isEllipsisValue(parsed.puntosAtencion)) {
         addError('Puntos de atención: reemplaza "..." por la información real.');
     }
 

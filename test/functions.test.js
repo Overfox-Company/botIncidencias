@@ -36,7 +36,7 @@ const buildValidTelecomSms = (overrides = {}) => {
         .map((block) => [block.title + ':', ...block.lines].join('\n'))
         .join('\n\n');
 
-    return [
+    const lines = [
         `Estado: ${values.estado}`,
         `Fecha de inicio: ${values.fechaInicio}`,
         `Fecha finalizada: ${values.fechaFinalizada}`,
@@ -56,8 +56,6 @@ const buildValidTelecomSms = (overrides = {}) => {
         '',
         `Estatus: ${values.estatus}`,
         '',
-        `Puntos de atención: ${values.puntosAtencion}`,
-        '',
         'Gerente estatal de atit:',
         values.gerente,
         '',
@@ -67,7 +65,13 @@ const buildValidTelecomSms = (overrides = {}) => {
         personalBlocks,
         '',
         '"ATIT, Somos la voz comando y control del SEN, nadie se cansa"'
-    ].join('\n');
+    ];
+
+    if (values.puntosAtencion !== undefined) {
+        lines.splice(18, 0, `Puntos de atención: ${values.puntosAtencion}`, '');
+    }
+
+    return lines.join('\n');
 };
 
 test('guardarTemporal crea y agrega mensajes en un archivo JSON', () => {
@@ -222,4 +226,26 @@ test('analyzeSMSBeforeSave reconoce el alias RED DE DATOS Y SISTEMAS para teleco
 
     assert.equal(result.ok, true);
     assert.equal(result.normalized.indicador, 'RED DE DATOS Y SISTEMAS');
+});
+
+test('analyzeSMSBeforeSave permite omitir puntos de atención', () => {
+    const sms = buildValidTelecomSms({
+        puntosAtencion: undefined
+    });
+
+    const result = analyzeSMSBeforeSave(sms);
+
+    assert.equal(result.ok, true);
+    assert.equal(result.parsed.puntosAtencion, undefined);
+});
+
+test('analyzeSMSBeforeSave valida puntos de atención cuando se informa con placeholder', () => {
+    const sms = buildValidTelecomSms({
+        puntosAtencion: '...'
+    });
+
+    const result = analyzeSMSBeforeSave(sms);
+
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join('\n'), /Puntos de atención: reemplaza "\.\.\." por la información real/);
 });
