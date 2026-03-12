@@ -144,6 +144,26 @@ export function guardarTemporal(dataFile, mensaje) {
     fs.writeFileSync(dataFile, JSON.stringify(mensajes, null, 2), "utf-8");
 }
 
+export const construirFilaIncidencia = (indice, incidencia, calculateTime) => ([
+    indice + 1,
+    incidencia.descripcion || 'Descripción no especificada',
+    incidencia.indicador || 'RED DE DATOS Y SISTEMAS DE TELEFONIA',
+    incidencia.impacto || 'Impacto no especificado',
+    incidencia.clasificacionImpacto ? incidencia.clasificacionImpacto.toUpperCase() : 'ALTO',
+    'ATIT-Tachira',
+    'Los Andes',
+    incidencia.estado || 'Tachira',
+    incidencia.fechaInicio || 'Fecha de inicio no especificada',
+    incidencia.fechaFinalizado || 'Fecha de finalización no especificada',
+    incidencia.horaInicio || 'Hora de inicio no especificada',
+    incidencia.horaCierre || 'Hora de cierre no especificada',
+    calculateTime(incidencia.fechaInicio, incidencia.fechaFinalizado, incidencia.horaInicio, incidencia.horaCierre),
+    incidencia.trabajosRealizados || 'Actividades no especificadas',
+    incidencia.personalEjecutor || 'Personal no especificado',
+    incidencia.estatus || 'Estatus no especificado',
+    incidencia.puntosAtencion || 'Puntos de atención no especificados'
+]);
+
 export const generarIncidencias = async () => {
     try {
         // Crear un nuevo workbook desde la plantilla
@@ -186,25 +206,7 @@ export const generarIncidencias = async () => {
             const a = cleanSMS(mensaje.Mensaje);
             console.log(a); // Juan
 
-            nuevoContenido.push([
-                i + 1, // Numero de fila
-                a.lugar,
-                a.indicador || 'RED DE DATOS Y SISTEMAS DE TELEFONIA',
-                a.impacto || 'Impacto no especificado',
-                'ALTO',
-                'ATIT-Tachira',
-                'Los Andes',
-                'Tachira',
-                a.fechaInicio || 'Fecha de inicio no especificada',
-                a.fechaFinalizado || 'Fecha de finalización no especificada',
-                a.horaInicio || 'Hora de inicio no especificada',
-                a.horaCierre || 'Hora de cierre no especificada',
-                CalculateTime(a.fechaInicio, a.fechaFinalizado, a.horaInicio, a.horaCierre),
-                a.descripcion || 'Descripción no especificada',
-                a.personalEjecutor || 'Personal no especificado',
-                a.estatus || 'Estatus no especificado',
-                a.puntosAtencion || 'Puntos de atención no especificados'
-            ]);
+            nuevoContenido.push(construirFilaIncidencia(i, a, CalculateTime));
         }
 
         // Insertar a partir de la fila 7

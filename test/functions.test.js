@@ -4,7 +4,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-import { analyzeSMSBeforeSave, cleanSMS, guardarTemporal } from '../functions.js';
+import { analyzeSMSBeforeSave, cleanSMS, construirFilaIncidencia, guardarTemporal } from '../functions.js';
 
 const buildValidTelecomSms = (overrides = {}) => {
     const defaults = {
@@ -107,6 +107,29 @@ test('cleanSMS extrae los campos principales y omite el footer del template', ()
     assert.match(parsed.personalEjecutor, /Personal de CANTV:/);
     assert.match(parsed.personalEjecutor, /Personal de ATIT Mérida:/);
     assert.doesNotMatch(parsed.personalEjecutor, /ATIT, Somos la voz comando y control del SEN/);
+});
+
+test('construirFilaIncidencia alinea descripción y actividades con la plantilla del Excel', () => {
+    const fila = construirFilaIncidencia(0, {
+        descripcion: 'Descripcion esperada',
+        indicador: 'ENLACES DE FIBRA OPTICA',
+        impacto: 'Impacto esperado',
+        clasificacionImpacto: 'medio',
+        estado: 'Táchira',
+        fechaInicio: '03/04/2026',
+        fechaFinalizado: '03/04/2026',
+        horaInicio: '10:30 am',
+        horaCierre: '02:00 pm',
+        trabajosRealizados: 'Actividades esperadas',
+        personalEjecutor: 'Ing Joel Zambrano',
+        estatus: 'Resuelta',
+        puntosAtencion: 'Sin novedad'
+    }, () => '3 horas y 30 minutos');
+
+    assert.equal(fila[1], 'Descripcion esperada');
+    assert.equal(fila[2], 'ENLACES DE FIBRA OPTICA');
+    assert.equal(fila[13], 'Actividades esperadas');
+    assert.equal(fila[4], 'MEDIO');
 });
 
 test('analyzeSMSBeforeSave acepta un SMS válido y normaliza el personal consolidado', () => {
