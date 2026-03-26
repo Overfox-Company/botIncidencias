@@ -109,6 +109,58 @@ test('cleanSMS extrae los campos principales y omite el footer del template', ()
     assert.doesNotMatch(parsed.personalEjecutor, /ATIT, Somos la voz comando y control del SEN/);
 });
 
+test('cleanSMS no reconoce palabras clave incrustadas dentro de otra sección', () => {
+    const sms = [
+        'Estado: Táchira',
+        'Fecha de inicio: 03/04/2026',
+        'Fecha finalizada: 03/04/2026',
+        'Hora de inicio: 10:30 am',
+        'Hora de cierre: 02:00 pm',
+        '',
+        'Descripción: Durante la atención se documentaron actividades de respaldo y validaciones internas sin crear un nuevo apartado.',
+        '',
+        'Área:',
+        'SISTEMAS DE RESPALDO DE ENERGÍA',
+        '',
+        'Impacto: Interrupción parcial del servicio en el nodo principal.',
+        '',
+        'Importancia: alto',
+        '',
+        'Estatus: Resuelta'
+    ].join('\n');
+
+    const parsed = cleanSMS(sms);
+
+    assert.match(parsed.descripcion, /actividades de respaldo/i);
+    assert.equal(parsed.trabajosRealizados, undefined);
+});
+
+test('cleanSMS exige que la palabra clave comience la línea para reconocer actividades', () => {
+    const sms = [
+        'Estado: Táchira',
+        'Fecha de inicio: 03/04/2026',
+        'Fecha finalizada: 03/04/2026',
+        'Hora de inicio: 10:30 am',
+        'Hora de cierre: 02:00 pm',
+        '',
+        'Descripción: Se dejó constancia. Nota técnica Actividades: este texto sigue siendo parte de la descripción.',
+        '',
+        'Área:',
+        'SISTEMAS DE RESPALDO DE ENERGÍA',
+        '',
+        'Impacto: Interrupción parcial del servicio en el nodo principal.',
+        '',
+        'Importancia: alto',
+        '',
+        'Estatus: Resuelta'
+    ].join('\n');
+
+    const parsed = cleanSMS(sms);
+
+    assert.match(parsed.descripcion, /Nota técnica Actividades:/);
+    assert.equal(parsed.trabajosRealizados, undefined);
+});
+
 test('construirFilaIncidencia alinea descripción y actividades con la plantilla del Excel', () => {
     const fila = construirFilaIncidencia(0, {
         descripcion: 'Descripcion esperada',
@@ -167,6 +219,49 @@ test('analyzeSMSBeforeSave acepta bloques de personal aunque no exista Personal 
     assert.equal(result.ok, true);
     assert.match(result.parsed.personalEjecutor, /Personal de CANTV:/);
     assert.match(result.parsed.personalEjecutor, /Personal de total com:/);
+});
+
+test('analyzeSMSBeforeSave acepta personal ejecutor cuando los nombres vienen en la misma línea del encabezado', () => {
+    const sms = [
+        'Estado: Táchira',
+        'Fecha de inicio: 23/03/2026',
+        'Fecha finalizada: 23/03/2026',
+        'Hora de inicio: 10:00 AM',
+        'Hora de cierre: 05:00 PM',
+        '',
+        'Descripción: Caída de los Servicios de voz y datos en la Subestación La Grita',
+        '',
+        'Área:',
+        '- SISTEMAS DE RESPALDO DE ENERGÍA',
+        '',
+        'Impacto: El operador de turno de la Subestación La Grita pierde comunicación con el despacho.',
+        '',
+        'Importancia: alto',
+        '',
+        'Actividades: Se realizó evaluación en sitio y se determinó la necesidad de sustituir el banco de baterías.',
+        '',
+        'Estatus: Pendiente por resolver.',
+        '',
+        'Puntos de atención: Se debe adquirir un banco de baterías nuevo a la brevedad posible.',
+        '',
+        'Gerente Estatal de Atit:',
+        '- Ing. William Castro.',
+        '',
+        'coordinador de telecomunicaciones:',
+        '- Ing. José Parada',
+        '',
+        'Personal ejecutor:                                                                                                                                                                                                              - Ing. Olga Lázaro.                                                                                                                                                                                                           - Ing. Alejandro Arbeláez ',
+        '',
+        '"ATIT, Somos la voz comando y control del SEN, nadie se cansa"'
+    ].join('\n');
+
+    const result = analyzeSMSBeforeSave(sms);
+
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.normalized.personalArray, [
+        'Ing. Olga Lázaro.',
+        'Ing. Alejandro Arbeláez'
+    ]);
 });
 
 test('analyzeSMSBeforeSave reporta errores específicos cuando el template queda sin completar', () => {

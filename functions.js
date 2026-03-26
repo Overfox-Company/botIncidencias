@@ -32,7 +32,7 @@ const stripHumanFormattingNoise = (value) => String(value || '')
     .replace(/[.;:,]+$/g, '')
     .trim();
 
-const PERSONAL_HEADER_REGEX = /^\s*(?:📌|♦️)?\s*(Personal(?:\s+[^:\n]+)*)\s*:?\s*$/i;
+const PERSONAL_HEADER_REGEX = /^\s*(?:📌|♦️)?\s*(Personal(?:\s+[^:\n]+)*)\s*:\s*(.*)$/i;
 const NON_PERSONAL_SECTION_REGEX = /^\s*(?:Estado|Fecha(?:\s+de)?\s*inicio|Fecha(?:\s+de)?\s*(?:finalizada|finalizado|cierre)|Hora(?:\s+de)?\s*inicio|Hora(?:\s+de)?\s*cierre|Hacer breve descripci[oó]n de la incidencia|Descripci[oó]n|[ÁA]rea(?:\s+de\s+la\s+incidencia)?|Lugar|Impacto|Importancia|Clasificaci[oó]n del impacto|Actividades|Describir detalladamente los trabajos realizados durante la atenci[oó]n de la incidencia|Trabajos realizados|Estatus|Puntos de ?atenci[oó]n|Gerente estatal de atit|Gerente|Coordinador(?: de telecomunicaciones| de infraestructura| de automatizaci[oó]n)?|COR)(?:\s*:.*)?$/i;
 
 const extractPersonalSections = (sms) => {
@@ -74,9 +74,10 @@ const extractPersonalSections = (sms) => {
         const personalHeaderMatch = rawLine.match(PERSONAL_HEADER_REGEX);
         if (personalHeaderMatch) {
             flushSection();
+            const inlineContent = personalHeaderMatch[2]?.trim();
             currentSection = {
                 title: personalHeaderMatch[1].trim(),
-                lines: [],
+                lines: inlineContent ? [inlineContent] : [],
             };
             continue;
         }
@@ -272,40 +273,42 @@ export const cleanSMS = (sms) => {
     // patrón de emojis opcionales
     const emojiOpt = "[\\p{Emoji_Presentation}\\p{Extended_Pictographic}]*";
     const linePrefix = String.raw`(?:^|\n)\s*`;
+    const requiredColon = String.raw`\s*:\s*`;
+    const blockKeywordPattern = String.raw`(?:Estado|Fecha(?:\s+de)?\s*inicio|Fecha(?:\s+de)?\s*(?:finalizada|finalizado|cierre)|Hora(?:\s+de)?\s*inicio|Hora(?:\s+de)?\s*cierre|Hacer breve descripci[oó]n de la incidencia|Descripci[oó]n|[ÁA]rea(?:\s+de\s+la\s+incidencia)?|Lugar|Impacto|Importancia|Clasificaci[oó]n del impacto|Actividades|Describir detalladamente los trabajos realizados durante la atenci[oó]n de la incidencia|Trabajos realizados|Estatus|Puntos de ?atenci[oó]n|Gerente estatal de atit|Gerente|Coordinador(?: de telecomunicaciones| de infraestructura| de automatizaci[oó]n)?|Personal(?:\s+[^:\n]+)*|["“”']?ATIT,|COR)`;
 
     const normalizedSMS = String(sms || "")
         .replace(/\r\n/g, "\n")
         .replace(/\r/g, "\n");
 
-    const sectionEndLookahead = String.raw`(?=\n(?:Estado|Fecha(?:\s+de)?\s*inicio|Fecha(?:\s+de)?\s*(?:finalizada|finalizado|cierre)|Hora(?:\s+de)?\s*inicio|Hora(?:\s+de)?\s*cierre|Hacer breve descripci[oó]n de la incidencia|Descripci[oó]n|[ÁA]rea(?:\s+de\s+la\s+incidencia)?|Lugar|Impacto|Importancia|Clasificaci[oó]n del impacto|Actividades|Describir detalladamente los trabajos realizados durante la atenci[oó]n de la incidencia|Trabajos realizados|Estatus|Puntos de ?atenci[oó]n|Gerente estatal de atit|Gerente|Coordinador(?: de telecomunicaciones| de infraestructura| de automatizaci[oó]n)?|Personal(?:\s+[^:\n]+)*|["“”']?ATIT,|COR)|$)`;
+    const sectionEndLookahead = String.raw`(?=(?:\n\s*(?:${blockKeywordPattern})\s*:|\n\s*["“”']?ATIT,|$))`;
 
     // Horas
-    const regexHoraInicio = new RegExp(`${linePrefix}${emojiOpt}\\s*Hora(?:\\s+de)?\\s*inicio${emojiOpt}\\s*:?\\s*([^\\n]+)`, "i");
-    const regexHoraCierre = new RegExp(`${linePrefix}${emojiOpt}\\s*Hora(?:\\s+de)?\\s*cierre${emojiOpt}\\s*:?\\s*([^\\n]+)`, "i");
+    const regexHoraInicio = new RegExp(`${linePrefix}${emojiOpt}\\s*Hora(?:\\s+de)?\\s*inicio${emojiOpt}${requiredColon}([^\\n]+)`, "i");
+    const regexHoraCierre = new RegExp(`${linePrefix}${emojiOpt}\\s*Hora(?:\\s+de)?\\s*cierre${emojiOpt}${requiredColon}([^\\n]+)`, "i");
 
     // Fechas
-    const regexFechaInicio = new RegExp(`${linePrefix}${emojiOpt}\\s*Fecha(?:\\s+de)?\\s*inicio${emojiOpt}\\s*:?\\s*(\\d{2}\\/\\d{2}\\/\\d{4})`, "i");
-    const regexFechaFinalizado = new RegExp(`${linePrefix}${emojiOpt}\\s*Fecha(?:\\s+de)?\\s*(?:Finalizada|Finalizado|cierre)${emojiOpt}\\s*:?\\s*(\\d{2}\\/\\d{2}\\/\\d{4})`, "i");
-    const regexFechaUnica = new RegExp(`${linePrefix}${emojiOpt}\\s*Fecha${emojiOpt}\\s*:?\\s*(\\d{2}\\/\\d{2}\\/\\d{4})`, "i");
+    const regexFechaInicio = new RegExp(`${linePrefix}${emojiOpt}\\s*Fecha(?:\\s+de)?\\s*inicio${emojiOpt}${requiredColon}(\\d{2}\\/\\d{2}\\/\\d{4})`, "i");
+    const regexFechaFinalizado = new RegExp(`${linePrefix}${emojiOpt}\\s*Fecha(?:\\s+de)?\\s*(?:Finalizada|Finalizado|cierre)${emojiOpt}${requiredColon}(\\d{2}\\/\\d{2}\\/\\d{4})`, "i");
+    const regexFechaUnica = new RegExp(`${linePrefix}${emojiOpt}\\s*Fecha${emojiOpt}${requiredColon}(\\d{2}\\/\\d{2}\\/\\d{4})`, "i");
 
     // Secciones largas
-    const regexDescripcion = new RegExp(`(?:Hacer breve descripci[oó]n de la incidencia|Descripci[oó]n)\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
-    const regexImpacto = new RegExp(`Impacto(?:\\s*\\([^)]*\\))?\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
-    const regexClasificacionImpacto = new RegExp(`(?:Importancia|Clasificaci[oó]n del impacto)(?:\\s*\\([^)]*\\))?\\s*:?\\s*(.+)`, "i");
-    const regexTrabajosRealizados = new RegExp(`(?:Actividades|Describir detalladamente los trabajos realizados durante la atenci[oó]n de la incidencia|Trabajos realizados)\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
-    const regexPuntosAtencion = new RegExp(`Puntos de ?atenci[oó]n(?:\\s*\\([^)]*\\))?\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
-    const regexGerenteEstatalAtit = new RegExp(`Gerente estatal de atit\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
-    const regexCoordinadorTelecom = new RegExp(`Coordinador de telecomunicaciones\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
-    const regexCoordinadorInfra = new RegExp(`Coordinador de infraestructura\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
-    const regexCoordinadorAutom = new RegExp(`Coordinador de automatizaci[oó]n\\s*:?\\s*([\\s\\S]*?)${sectionEndLookahead}`, "i");
+    const regexDescripcion = new RegExp(`${linePrefix}(?:Hacer breve descripci[oó]n de la incidencia|Descripci[oó]n)${requiredColon}([\\s\\S]*?)${sectionEndLookahead}`, "i");
+    const regexImpacto = new RegExp(`${linePrefix}Impacto(?:\\s*\\([^)]*\\))?${requiredColon}([\\s\\S]*?)${sectionEndLookahead}`, "i");
+    const regexClasificacionImpacto = new RegExp(`${linePrefix}(?:Importancia|Clasificaci[oó]n del impacto)(?:\\s*\\([^)]*\\))?${requiredColon}([^\\n]+)`, "i");
+    const regexTrabajosRealizados = new RegExp(`${linePrefix}(?:Actividades|Describir detalladamente los trabajos realizados durante la atenci[oó]n de la incidencia|Trabajos realizados)${requiredColon}([\\s\\S]*?)${sectionEndLookahead}`, "i");
+    const regexPuntosAtencion = new RegExp(`${linePrefix}Puntos de ?atenci[oó]n(?:\\s*\\([^)]*\\))?${requiredColon}([\\s\\S]*?)${sectionEndLookahead}`, "i");
+    const regexGerenteEstatalAtit = new RegExp(`${linePrefix}Gerente estatal de atit${requiredColon}([\\s\\S]*?)${sectionEndLookahead}`, "i");
+    const regexCoordinadorTelecom = new RegExp(`${linePrefix}Coordinador de telecomunicaciones${requiredColon}([\\s\\S]*?)${sectionEndLookahead}`, "i");
+    const regexCoordinadorInfra = new RegExp(`${linePrefix}Coordinador de infraestructura${requiredColon}([\\s\\S]*?)${sectionEndLookahead}`, "i");
+    const regexCoordinadorAutom = new RegExp(`${linePrefix}Coordinador de automatizaci[oó]n${requiredColon}([\\s\\S]*?)${sectionEndLookahead}`, "i");
 
     // Lugar
-    const regexLugar = new RegExp(`${linePrefix}${emojiOpt}\\s*lugar${emojiOpt}\\s*:?\\s*([^\\n]+)`, "i");
-    const regexIndicador = new RegExp(`${linePrefix}${emojiOpt}\\s*[áa]rea(?:\\s+de\\s+la\\s+incidencia)?${emojiOpt}\\s*(?:\\([^)]*\\))?\\s*:?\\s*([^\\n]+)`, "i");
-    const regexEstado = new RegExp(`${linePrefix}${emojiOpt}\\s*Estado${emojiOpt}\\s*:?\\s*([^\\n]+)`, "i");
+    const regexLugar = new RegExp(`${linePrefix}${emojiOpt}\\s*lugar${emojiOpt}${requiredColon}([^\\n]+)`, "i");
+    const regexIndicador = new RegExp(`${linePrefix}${emojiOpt}\\s*[áa]rea(?:\\s+de\\s+la\\s+incidencia)?${emojiOpt}\\s*(?:\\([^)]*\\))?${requiredColon}([^\\n]+)`, "i");
+    const regexEstado = new RegExp(`${linePrefix}${emojiOpt}\\s*Estado${emojiOpt}${requiredColon}([^\\n]+)`, "i");
 
     // estatus
-    const regexEstatus = new RegExp(`${linePrefix}${emojiOpt}\\s*Estatus${emojiOpt}\\s*:?\\s*([^\\n]+)`, "i");
+    const regexEstatus = new RegExp(`${linePrefix}${emojiOpt}\\s*Estatus${emojiOpt}${requiredColon}([^\\n]+)`, "i");
     // ---- Fechas ----
     let fechaInicio = null;
     let fechaFinalizado = null;
