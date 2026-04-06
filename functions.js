@@ -31,6 +31,12 @@ const stripHumanFormattingNoise = (value) => String(value || '')
     .replace(/^\s*(?:[-*•·–—]+|\d+[.)])\s*/, '')
     .replace(/[.;:,]+$/g, '')
     .trim();
+const splitComparableSectionLines = (value) => String(value || '')
+    .split('\n')
+    .map((line) => line.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, ''))
+    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .map((line) => stripHumanFormattingNoise(line))
+    .filter(Boolean);
 
 const PERSONAL_HEADER_REGEX = /^\s*(?:📌|♦️)?\s*(Personal(?:\s+[^:\n]+)*)\s*:\s*(.*)$/i;
 const NON_PERSONAL_SECTION_REGEX = /^\s*(?:Estado|Fecha(?:\s+de)?\s*inicio|Fecha(?:\s+de)?\s*(?:finalizada|finalizado|cierre)|Hora(?:\s+de)?\s*inicio|Hora(?:\s+de)?\s*cierre|Hacer breve descripci[oó]n de la incidencia|Descripci[oó]n|[ÁA]rea(?:\s+de\s+la\s+incidencia)?|Lugar|Impacto|Importancia|Clasificaci[oó]n del impacto|Actividades|Describir detalladamente los trabajos realizados durante la atenci[oó]n de la incidencia|Trabajos realizados|Estatus|Puntos de ?atenci[oó]n|Gerente estatal de atit|Gerente|Coordinador(?: de telecomunicaciones| de infraestructura| de automatizaci[oó]n)?|COR)(?:\s*:.*)?$/i;
@@ -305,6 +311,7 @@ export const cleanSMS = (sms) => {
     // Lugar
     const regexLugar = new RegExp(`${linePrefix}${emojiOpt}\\s*lugar${emojiOpt}${requiredColon}([^\\n]+)`, "i");
     const regexIndicador = new RegExp(`${linePrefix}${emojiOpt}\\s*[áa]rea(?:\\s+de\\s+la\\s+incidencia)?${emojiOpt}\\s*(?:\\([^)]*\\))?${requiredColon}([^\\n]+)`, "i");
+    const regexAreaBlock = new RegExp(`${linePrefix}${emojiOpt}\\s*[áa]rea(?:\\s+de\\s+la\\s+incidencia)?${emojiOpt}\\s*(?:\\([^)]*\\))?${requiredColon}([\\s\\S]*?)${sectionEndLookahead}`, "i");
     const regexEstado = new RegExp(`${linePrefix}${emojiOpt}\\s*Estado${emojiOpt}${requiredColon}([^\\n]+)`, "i");
 
     // estatus
@@ -358,7 +365,9 @@ export const cleanSMS = (sms) => {
     const coordinadorTelecomunicaciones = sanitizeInlineText(normalizedSMS.match(regexCoordinadorTelecom)?.[1]);
     const coordinadorInfraestructura = sanitizeInlineText(normalizedSMS.match(regexCoordinadorInfra)?.[1]);
     const coordinadorAutomatizacion = sanitizeInlineText(normalizedSMS.match(regexCoordinadorAutom)?.[1]);
-    const indicador = sanitizeInlineText(normalizedSMS.match(regexIndicador)?.[1]);
+    const areaSection = sanitizeBlockText(normalizedSMS.match(regexAreaBlock)?.[1]);
+    const areaLines = splitComparableSectionLines(areaSection);
+    const indicador = sanitizeInlineText(normalizedSMS.match(regexIndicador)?.[1]) || areaLines[0];
     const lugar = sanitizeInlineText(normalizedSMS.match(regexLugar)?.[1]) || indicador;
     const estado = sanitizeInlineText(normalizedSMS.match(regexEstado)?.[1]);
     const estatus = sanitizeInlineText(normalizedSMS.match(regexEstatus)?.[1]);
@@ -370,6 +379,7 @@ export const cleanSMS = (sms) => {
         horaCierre,
         descripcion,
         indicador,
+        areaSection,
         clasificacionImpacto,
         impacto,
         trabajosRealizados,
@@ -405,8 +415,14 @@ export const analyzeSMSBeforeSave = (sms, options = {}) => {
     const areasPermitidasCoordinacion = coordinadorTipo
         ? (AREAS_POR_COORDINACION[coordinadorTipo] || [])
         : indicadoresPermitidos;
+    const areasPermitidasNormalizadas = new Set(areasPermitidasCoordinacion.map((item) => normalizarComparacion(item)));
+    const areasDetectadasEnBloque = Array.from(new Set(
+        splitComparableSectionLines(parsed.areaSection)
+            .map((item) => normalizarComparacion(item))
+            .filter((item) => areasPermitidasNormalizadas.has(item))
+    ));
     const areaTemplateUntouched = areasPermitidasCoordinacion.length > 1
-        && areasPermitidasCoordinacion.filter((item) => smsNormalizado.includes(normalizarComparacion(item))).length >= Math.min(2, areasPermitidasCoordinacion.length);
+        && areasDetectadasEnBloque.length >= Math.min(2, areasPermitidasCoordinacion.length);
     const personalContienePlaceholder = (parsed.personalSections || []).some((section) => /(^|\n)\s*-?\s*Nombre\s+\d+/i.test(section.content));
 
     if (!parsed.estado) {

@@ -6,7 +6,44 @@ import path from 'path';
 
 import { analyzeSMSBeforeSave, cleanSMS, construirFilaIncidencia, guardarTemporal } from '../functions.js';
 
-const buildValidTelecomSms = (overrides = {}) => {
+const VARIANT_FIXTURES = {
+    telecomunicaciones: {
+        coordinadorTitulo: 'coordinador de telecomunicaciones',
+        coordinador: 'Ing Jose Parada',
+        areas: [
+            'SISTEMAS DE RESPALDO DE ENERGÍA',
+            'SISTEMA DE CLIMATIZACION',
+            'MANTENIMIENTO DE LA PLATAFORMA',
+            'ENLACES DE RADIOCOMUNICACIONES',
+            'ENLACES DE FIBRA OPTICA',
+            'RED DE DATOS Y SISTEMAS DE TELEFONIA',
+            'RED DE DATOS Y SISTEMAS',
+            'COMUNICACIONES MÓVILES'
+        ]
+    },
+    infraestructura: {
+        coordinadorTitulo: 'coordinador de infraestructura',
+        coordinador: 'Ing. Leonel Duarte',
+        areas: [
+            'INFRAESTRUCTURA TECNOLÓGICA'
+        ]
+    },
+    automatizacion: {
+        coordinadorTitulo: 'coordinador de automatizacion',
+        coordinador: 'Ing Freddy Ruiz',
+        areas: [
+            'TELEPROTECCIÓN, TELEMETRIA Y TELEMEDICION',
+            'SISTEMAS DE AUTOMATIZACIÓN'
+        ]
+    }
+};
+
+const buildValidSms = (variant = 'telecomunicaciones', overrides = {}) => {
+    const variantConfig = VARIANT_FIXTURES[variant];
+    if (!variantConfig) {
+        throw new Error(`Variante no soportada en tests: ${variant}`);
+    }
+
     const defaults = {
         estado: 'Táchira',
         fechaInicio: '03/04/2026',
@@ -14,15 +51,15 @@ const buildValidTelecomSms = (overrides = {}) => {
         horaInicio: '10:30 am',
         horaCierre: '02:00 pm',
         descripcion: 'Falla en el sistema de respaldo principal.',
-        area: 'SISTEMAS DE RESPALDO DE ENERGÍA',
+        area: variantConfig.areas[0],
         impacto: 'Interrupción parcial del servicio en el nodo principal.',
         importancia: 'alto',
         actividades: 'Se reemplazó el módulo averiado y se validó la operación.',
         estatus: 'Resuelta',
         puntosAtencion: 'Subestación San Cristóbal.',
         gerente: 'Ing. William Castro.',
-        coordinadorTitulo: 'coordinador de telecomunicaciones',
-        coordinador: 'Ing Jose Parada',
+        coordinadorTitulo: variantConfig.coordinadorTitulo,
+        coordinador: variantConfig.coordinador,
         personalBlocks: [
             {
                 title: 'Personal ejecutor',
@@ -73,6 +110,8 @@ const buildValidTelecomSms = (overrides = {}) => {
 
     return lines.join('\n');
 };
+
+const buildValidTelecomSms = (overrides = {}) => buildValidSms('telecomunicaciones', overrides);
 
 test('guardarTemporal crea y agrega mensajes en un archivo JSON', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'telegram-bot-test-'));
@@ -346,6 +385,28 @@ test('analyzeSMSBeforeSave reconoce el alias RED DE DATOS Y SISTEMAS para teleco
     assert.equal(result.normalized.indicador, 'RED DE DATOS Y SISTEMAS');
 });
 
+test('analyzeSMSBeforeSave acepta RED DE DATOS Y SISTEMAS DE TELEFONIA sin confundirla con el alias superpuesto', () => {
+    const sms = buildValidTelecomSms({
+        area: 'RED DE DATOS Y SISTEMAS DE TELEFONIA'
+    });
+
+    const result = analyzeSMSBeforeSave(sms);
+
+    assert.equal(result.ok, true);
+    assert.equal(result.normalized.indicador, 'RED DE DATOS Y SISTEMAS DE TELEFONIA');
+});
+
+test('analyzeSMSBeforeSave sigue detectando cuando el bloque Área conserva dos opciones superpuestas del template', () => {
+    const sms = buildValidTelecomSms({
+        area: '- RED DE DATOS Y SISTEMAS DE TELEFONIA\n- RED DE DATOS Y SISTEMAS'
+    });
+
+    const result = analyzeSMSBeforeSave(sms);
+
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join('\n'), /Área: elimina las opciones del template y deja solo el área que corresponde a la incidencia/);
+});
+
 test('analyzeSMSBeforeSave permite omitir puntos de atención', () => {
     const sms = buildValidTelecomSms({
         puntosAtencion: undefined
@@ -369,11 +430,7 @@ test('analyzeSMSBeforeSave valida puntos de atención cuando se informa con plac
 });
 
 test('analyzeSMSBeforeSave acepta la única área válida en infraestructura', () => {
-    const sms = buildValidTelecomSms({
-        area: 'INFRAESTRUCTURA TECNOLÓGICA',
-        coordinadorTitulo: 'coordinador de infraestructura',
-        coordinador: 'Ing. Leonel Duarte'
-    });
+    const sms = buildValidSms('infraestructura');
 
     const result = analyzeSMSBeforeSave(sms);
 
@@ -402,11 +459,10 @@ test('analyzeSMSBeforeSave tolera viñetas y puntuación final en campos cortos'
 });
 
 test('analyzeSMSBeforeSave tolera puntuación final en infraestructura', () => {
-    const sms = buildValidTelecomSms({
+    const sms = buildValidSms('infraestructura', {
         area: 'INFRAESTRUCTURA TECNOLÓGICA.',
         importancia: 'bajo.',
         estatus: 'Resuelta.',
-        coordinadorTitulo: 'coordinador de infraestructura',
         coordinador: 'Ing. Leonel Duarte.'
     });
 
@@ -416,4 +472,62 @@ test('analyzeSMSBeforeSave tolera puntuación final en infraestructura', () => {
     assert.equal(result.normalized.coordinadorTipo, 'infraestructura');
     assert.equal(result.normalized.indicador, 'INFRAESTRUCTURA TECNOLÓGICA');
     assert.equal(result.parsed.estatus, 'Resuelta');
+});
+
+for (const [variant, config] of Object.entries(VARIANT_FIXTURES)) {
+    test(`analyzeSMSBeforeSave acepta un SMS válido de ${variant}`, () => {
+        const sms = buildValidSms(variant);
+
+        const result = analyzeSMSBeforeSave(sms);
+
+        assert.equal(result.ok, true);
+        assert.equal(result.normalized.coordinadorTipo, variant);
+        assert.equal(result.normalized.coordinadorResponsable, config.coordinador);
+        assert.equal(result.normalized.indicador, config.areas[0]);
+    });
+
+    for (const area of config.areas) {
+        test(`analyzeSMSBeforeSave acepta el área ${area} para ${variant}`, () => {
+            const sms = buildValidSms(variant, { area });
+
+            const result = analyzeSMSBeforeSave(sms);
+
+            assert.equal(result.ok, true);
+            assert.equal(result.normalized.coordinadorTipo, variant);
+            assert.equal(result.normalized.indicador, area);
+        });
+    }
+}
+
+test('analyzeSMSBeforeSave rechaza un área de telecomunicaciones dentro de automatizacion', () => {
+    const sms = buildValidSms('automatizacion', {
+        area: 'ENLACES DE FIBRA OPTICA'
+    });
+
+    const result = analyzeSMSBeforeSave(sms);
+
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join('\n'), /Área inválida para automatizacion/);
+});
+
+test('analyzeSMSBeforeSave rechaza un área de automatizacion dentro de infraestructura', () => {
+    const sms = buildValidSms('infraestructura', {
+        area: 'SISTEMAS DE AUTOMATIZACIÓN'
+    });
+
+    const result = analyzeSMSBeforeSave(sms);
+
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join('\n'), /Área inválida para infraestructura/);
+});
+
+test('analyzeSMSBeforeSave detecta template sin depurar en automatizacion', () => {
+    const sms = buildValidSms('automatizacion', {
+        area: '- TELEPROTECCIÓN, TELEMETRIA Y TELEMEDICION\n- SISTEMAS DE AUTOMATIZACIÓN'
+    });
+
+    const result = analyzeSMSBeforeSave(sms);
+
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join('\n'), /Área: elimina las opciones del template y deja solo el área que corresponde a la incidencia/);
 });
